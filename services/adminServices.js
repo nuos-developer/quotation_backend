@@ -131,6 +131,7 @@ const adminService = {
             process.env.JWT_SECRET,
             { expiresIn: '1d' }
         );
+        console.log(token);
         return { admin, token };
     },
 

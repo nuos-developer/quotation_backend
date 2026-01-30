@@ -1,8 +1,10 @@
-// config/dbConn.js
 const { Pool } = require('pg');
 
 const pool = new Pool({
-  connectionString: process.env.PG_URI, // e.g. postgres://user:pass@host:port/db
+  connectionString: process.env.PG_URI,
+  ssl: {
+    rejectUnauthorized: false
+  }
 });
 
 const connectDB = async () => {
@@ -12,8 +14,8 @@ const connectDB = async () => {
     client.release();
     return true;
   } catch (err) {
-    console.error(' PostgreSQL Connection Error:', err.message);
-    throw err; // Let server.js handle exit
+    console.error('PostgreSQL Connection Error:', err.message);
+    throw err;
   }
 };
 

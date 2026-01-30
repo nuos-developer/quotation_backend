@@ -41,7 +41,7 @@ const adminController = {
 
     login: async (req, res) => {
         try {
-            console.log(req.body);
+            console.log('admin:>>>>>>>',req.body);
 
             const { email_id, password } = req.body;
             const { admin, token } = await adminService.loginAdmin(email_id, password);
