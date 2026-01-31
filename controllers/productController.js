@@ -9,15 +9,16 @@ const productController = {
         try {
             const reqBody = req.body;
             const userId = req.user.id;
-
+            
             // Convert uploaded files into accessible URLs
             const imageUrls = req.files.map(file =>
                 `${req.protocol}://${req.get("host")}/uploads/products/${file.filename}`
             );
             console.log('image url :.1111111', imageUrls);
-
+            
             reqBody.image_urls = imageUrls;
-
+            
+            console.log(reqBody, userId);
             const resp = await productService.addProduct(reqBody, userId);
 
             return res.status(201).json({

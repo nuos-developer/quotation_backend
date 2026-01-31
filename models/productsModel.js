@@ -2,45 +2,53 @@
 const { pool } = require('../config/dbConn');
 
 const productModel = {
-    addProduct: async (reqBody, userId) => {
-        try {
-            const {
-                product_name,
-                category,
-                mod_size,
-                price,
-                wiring_type_id,
-                wiring_type,
-                zigbee_type,
-            } = reqBody;
+   addProduct: async (reqBody, userId) => {
+  try {
+    const {
+      product_name,
+      category,
+      mod_size,
+      price,
+      wiring_type,
+      zigbee_type,
+    } = reqBody;
 
-            const query = `
-            INSERT INTO products 
-            (user_id, product_name, category, mod_size, price, wiring_type_id, wiring_type, zigbee_type, created_by)
-            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
-            RETURNING id;
-        `;
+    // ✅ convert wiring_type_id to integer
+    const wiring_type_id = parseInt(reqBody.wiring_type_id, 10);
 
-            const values = [
-                userId,
-                product_name,
-                category,
-                mod_size,
-                price,
-                wiring_type_id,
-                wiring_type,
-                zigbee_type,
-                userId
-            ];
+    // ✅ validate integer
+    if (!Number.isInteger(wiring_type_id)) {
+      throw new Error('wiring_type_id must be a valid integer');
+    }
 
-            const result = await pool.query(query, values);
-            return result.rows[0];
+    const query = `
+      INSERT INTO products 
+      (user_id, product_name, category, mod_size, price, wiring_type_id, wiring_type, zigbee_type, created_by)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+      RETURNING id;
+    `;
 
-        } catch (error) {
-            console.error("Error inserting product:", error);
-            throw error;
-        }
-    },
+    const values = [
+      userId,
+      product_name,
+      category,
+      mod_size,
+      price,
+      wiring_type_id, // ✅ integer now
+      wiring_type,
+      zigbee_type,
+      userId
+    ];
+
+    const result = await pool.query(query, values);
+    return result.rows[0];
+
+  } catch (error) {
+    console.error("Error inserting product:", error.message);
+    throw error;
+  }
+},
+
 
     addProductImages: async (productId, imageUrls) => {
         try {
@@ -232,62 +240,7 @@ const productModel = {
         }
     },
 
-    updateProduct: async (productId, reqBody, userId) => {
-        try {
-            const {
-                product_name,
-                category,
-                mod_size,
-                price,
-                wiring_type_id,
-                wiring_type,
-                zigbee_type
-            } = reqBody;
-
-            const query = `
-            UPDATE products p
-            SET 
-                product_name = $1,
-                category = $2,
-                mod_size = $3,
-                price = $4,
-                wiring_type_id = $5,
-                wiring_type = $6,
-                zigbee_type = $7,
-                updated_by = $8,
-                updated_at = NOW()
-            WHERE p.id = $9
-            RETURNING *;
-        `;
-
-            const values = [
-                product_name,
-                category,
-                mod_size,
-                price,
-                wiring_type_id,
-                wiring_type,
-                zigbee_type,
-                userId,
-                productId
-            ];
-
-            const result = await pool.query(query, values);
-
-            return {
-                success: true,
-                data: result.rows[0],
-            };
-
-        } catch (error) {
-            console.error('Error updating Product details:', error);
-            return {
-                success: false,
-                message: 'Failed to update Product details',
-                error: error.message,
-            };
-        }
-    },
+    
     updateProduct: async (productId, reqBody, userId) => {
         try {
             const {
