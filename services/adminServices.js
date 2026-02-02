@@ -176,20 +176,16 @@ const adminService = {
     assignPartnerRole: async (payload, admin) => {
         try {
             
-            console.log('Admin:', admin);
-            console.log('Payload:', payload);
-    
-            const { user_id, role_id, modules } = payload;
-    
+            const { user_id, role_id, permissions } = payload;
             const userData = await dbModel.getUserById(user_id)
-    
-            if (!user_id || !role_id || !Array.isArray(modules)) {
-                throw new Error('Invalid payload');
-            }
+
+            // if (!user_id || !role_id || !Array.isArray(modules)) {
+            //     throw new Error('Invalid payload');
+            // }
             const isAssignpermission = await dbModel.assignPartnerRoleBulk(
                 user_id,
                 role_id,
-                modules,
+                permissions,
                 admin.id
             );
                 const isApprove = await dbModel.approvePermissiopn(role_id, user_id, admin.id, payload.is_admin_approve)
@@ -198,9 +194,6 @@ const adminService = {
                 const toMailId = process.env.ADMIN_EMAIL;
                 const subject = `${userData.first_name} Permission Approved`;
                 const emailHtml = generateAccessGrantedEmailTemplate(userData.first_name, userData.email_id,);
-    
-                console.log(userEmail, toMailId, subject, emailHtml);
-                
     
                 const sendmail = await sendEmailWithCustomFrom(toMailId, userEmail, subject, emailHtml);
     

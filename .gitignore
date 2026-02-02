@@ -1,2 +1,12 @@
+#env file
+.env
+
+# database config
+config/dbconn.js
+
+# uploads (user generated content)
+uploads/
+uploads/product/
+
 # Node artifact files
 node_modules/

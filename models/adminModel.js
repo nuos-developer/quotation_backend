@@ -283,52 +283,50 @@ const dbModel = {
     }
   },
 
-  assignPartnerRoleBulk: async (userId, roleId, modules, adminId) => {
-    const client = await pool.connect();
+assignPartnerRoleBulk: async (userId, roleId, permissions, adminId) => {
+  const client = await pool.connect();
 
-    console.log(userId, roleId, modules, adminId);
+  console.log(userId, roleId, permissions, adminId);
 
-    try {
-      await client.query('BEGIN');
+  try {
+    await client.query('BEGIN');
 
-      const query = `
-                INSERT INTO permissions
-          (user_id, role_id, module_id, can_create, can_view, can_update, can_delete, assigned_by)
-          VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
-          ON CONFLICT (user_id, role_id, module_id)
-          DO UPDATE SET
-            can_create = EXCLUDED.can_create,
-            can_view   = EXCLUDED.can_view,
-            can_update = EXCLUDED.can_update,
-            can_delete = EXCLUDED.can_delete,
-            assigned_by = EXCLUDED.assigned_by,
-            updated_at = NOW();
+    const query = `
+      INSERT INTO permissions
+        (user_id, role_id, module_id, can_create, can_view, can_update, can_delete, assigned_by)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+      ON CONFLICT (user_id, role_id, module_id)
+      DO UPDATE SET
+        can_create = EXCLUDED.can_create,
+        can_view   = EXCLUDED.can_view,
+        can_update = EXCLUDED.can_update,
+        can_delete = EXCLUDED.can_delete,
+        assigned_by = EXCLUDED.assigned_by,
+        updated_at = NOW();
     `;
 
-      for (const m of modules) {
-        const { module_id, permissions } = m;
-
-        await client.query(query, [
-          userId,
-          roleId,
-          module_id,
-          permissions.create,
-          permissions.view,
-          permissions.update,
-          permissions.delete,
-          adminId
-        ]);
-      }
-
-      await client.query('COMMIT');
-    } catch (error) {
-      await client.query('ROLLBACK');
-      console.error('Error assigning permissions:', error);
-      throw error;
-    } finally {
-      client.release();
+    for (const m of permissions) {
+      await client.query(query, [
+        userId,
+        roleId,
+        m.module_id,
+        m.can_create,
+        m.can_view,
+        m.can_update,
+        m.can_delete,
+        adminId
+      ]);
     }
-  },
+
+    await client.query('COMMIT');
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Error assigning permissions:', error);
+    throw error;
+  } finally {
+    client.release();
+  }
+},
 
   approvePermissiopn: async (role_id, user_id, adminId, is_admin_approve) => {
 
