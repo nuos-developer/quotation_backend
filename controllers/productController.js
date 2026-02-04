@@ -8,6 +8,7 @@ const productController = {
     addProduct: async (req, res) => {
         try {
             const reqBody = req.body;
+            
             const userId = req.user.id;
             
             // Convert uploaded files into accessible URLs
