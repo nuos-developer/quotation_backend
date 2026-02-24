@@ -120,6 +120,7 @@ const adminService = {
         if (!admin) return { admin: null };
         await dbModel.updateLoginStatus(admin.id)
         const isMatch = await bcrypt.compare(password, admin.password);
+        
         if (!isMatch) return { admin: null };
 
         const token = jwt.sign(

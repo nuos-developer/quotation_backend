@@ -125,7 +125,7 @@ const userModel = {
                 [emailId]
             );
 
-            return result.rows[0]?.is_admin_approve || null;
+            return result.rows[0]?.is_admin_approve;
         } catch (error) {
             console.error('Error checking approval status:', error);
             throw error;

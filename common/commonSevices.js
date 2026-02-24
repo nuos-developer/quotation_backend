@@ -147,6 +147,8 @@ const commonServices = {
             console.log('Generated OTP:', otp);
             console.log('Hashed OTP:', hashedOtp);
 
+            const userData = await commDbModel.getUserDataByEmail(reqBody.email_id)
+
             // Save OTP (linked to user or email)
             
             // Generate Email HTML
@@ -162,6 +164,7 @@ const commonServices = {
                 message: 'OTP sent successfully to your email address.',
                 data: {
                     id : otpResp.id,
+                    userId : userData.id,
                     email: reqBody.email_id, 
                     otp:otp,
                     otpSent: true,

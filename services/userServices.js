@@ -11,7 +11,6 @@ const { generateAdminUserSubmissionTemplate } = require('../utils/emailTemplates
 const { notificationTpe } = require('../constants/notificationTypeConstant');
 const permissionModel = require('../models/permissionModel');
 
-
 const adminService = {
 
   loginUser: async (email_id, password) => {
@@ -26,6 +25,7 @@ const adminService = {
       const approvalStatus = await userModel.checkApprovalStatus(email_id);
 
       if (approvalStatus === 'PENDING') {
+        
         return {
           approvalPending: true
         };
@@ -39,6 +39,7 @@ const adminService = {
 
       // 3. Check password
       const isMatch = await bcrypt.compare(password, user.password);
+
       if (!isMatch) {
         return { user: null };
       }

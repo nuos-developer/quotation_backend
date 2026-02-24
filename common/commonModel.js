@@ -13,6 +13,23 @@ const commDbModel = {
                 [email_id]
             );
             return result.rows[0];
+
+        } catch (error) {
+            console.error('Error finding admin by email:', error);
+            throw error;
+        }
+    },
+
+    getUserDataByEmail: async (email_id) => {
+        try {
+            const result = await pool.query(
+                `SELECT u.id, u.email_id, u.password, u.mobile_number, u.first_name, u.last_name
+                FROM users u
+                WHERE email_id = $1 AND deleted_at IS NULL`,
+                [email_id]
+            );
+            return result.rows[0];
+
         } catch (error) {
             console.error('Error finding admin by email:', error);
             throw error;

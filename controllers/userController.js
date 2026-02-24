@@ -48,7 +48,6 @@ const userController = {
         }
     },
 
-
     insertUserDetails: async (req, res) => {
         try {
             const userId = req.params.userId;
