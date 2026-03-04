@@ -246,23 +246,23 @@ const userModel = {
     },
 
 
-    getUserDashboard: async () => {
+    getPermissionByuserId: async (userId) => {
         try {
-            const query = ``
+            const query = `SELECT * FROM permissions p  WHERE user_Id = $1`
 
-            const result = await pool.query(query, [loggedInUserId]);
+            const result = await pool.query(query, [userId]);
 
             if (!result.rows.length) {
                 return {
                     success: false,
-                    message: 'No users dashboard found under this partner',
+                    message: 'No users permission found under this partner',
                     data: [],
                 };
             }
 
             return {
                 success: true,
-                message: 'Users Dashboard fetched successfully',
+                message: 'Users Permission fetched successfully',
                 data: result.rows,
             }
         } catch (error) {
@@ -273,7 +273,7 @@ const userModel = {
                 error: error.message,
             };
         }
-    }
+    },
 }
 
 

@@ -118,6 +118,18 @@ const userController = {
             console.error('Error in insertUserDetails:', error);
             res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: HttpMessage.INTERNAL_SERVER_ERROR });
         }
+    },
+    getPermissionByuserId: async (req, res) => {
+        try {
+            const userId = req.params.userId
+
+            const result = await userService.getPermissionByuserId(userId)
+            res.status(HttpStatus.CREATED).json({ message: result.message, data: result.data, });
+
+        } catch (error) {
+            console.error('Error in get user details:', error);
+            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: HttpMessage.INTERNAL_SERVER_ERROR });
+        }
     }
 }
 

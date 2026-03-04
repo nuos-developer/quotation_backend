@@ -25,7 +25,7 @@ const adminService = {
       const approvalStatus = await userModel.checkApprovalStatus(email_id);
 
       if (approvalStatus === 'PENDING') {
-        
+
         return {
           approvalPending: true
         };
@@ -147,6 +147,19 @@ const adminService = {
       return {
         success: false,
         message: 'Failed to User Dashboard',
+        error: error.message,
+      };
+    }
+  },
+  getPermissionByuserId: async (userId) => {
+    try {
+      const resp = await userModel.getPermissionByuserId(userId)
+      return resp
+    } catch (error) {
+      console.error('Error get Permission :', error);
+      return {
+        success: false,
+        message: 'Failed to User Permission',
         error: error.message,
       };
     }
