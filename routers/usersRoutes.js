@@ -19,7 +19,7 @@ router.get('/get_permission_data', authMiddleware(), userController.getPermissio
 
 // router.get('/dashboard', authMiddleware(), userController.UserDashboard)
 
-router.get('/getPermissionByuserId/:userId', userController.getPermissionByuserId)
+router.get('/getPermissionById/:userId', userController.getPermissionByuserId)
 
 router.post('/changePassword/:userId', commonController.changePassword)
 
