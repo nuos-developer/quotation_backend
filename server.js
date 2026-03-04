@@ -10,7 +10,7 @@ const PORT = process.env.PORT || 8080;
     await connectDB();
 
     const server = app.listen(PORT, '0.0.0.0', () => {
-      console.log(`Server running successfully on http://192.168.1.14:${PORT}`);
+      console.log(`Server running successfully on : ${PORT}`);
     });
 
     server.on('error', (err) => {
