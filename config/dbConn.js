@@ -1,4 +1,5 @@
 const { Pool } = require('pg');
+console.log( '">>>>>>>>>>>', process.env.PG_URI);
 
 const pool = new Pool({
   connectionString: process.env.PG_URI,

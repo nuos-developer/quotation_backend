@@ -248,7 +248,13 @@ const userModel = {
 
     getPermissionByuserId: async (userId) => {
         try {
-            const query = `SELECT * FROM permissions p  WHERE user_Id = $1`
+            const query = `SELECT p.id , m.id "module_id", m.module_name , r.id "rolw_id" , r.role_name, u.id "user_id", u.user_name, p.can_create ,p.can_delete ,p.can_update ,p.can_view,p.assigned_by, p.created_at , p.updated_at 
+                            FROM permissions p 
+                            JOIN modules m ON p.module_id = m.id 
+                            JOIN roles r  ON p.role_id  = r.id 
+                            JOIN users u ON p.user_id = u.id 
+                            WHERE user_Id = $1
+                            `
 
             const result = await pool.query(query, [userId]);
 
