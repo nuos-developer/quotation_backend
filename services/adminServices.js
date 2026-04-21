@@ -8,7 +8,7 @@ const { sendEmail } = require('../utils/nodeMailer')
 const { generateAccessGrantedEmailTemplate, generateAdminRoleRequestTemplate } = require('../utils/emailTemplates');
 const { sendEmailWithCustomFrom } = require('../utils/nodeMailer')
 const { canManage } = require('../utils/roleHierarchy');
-const {notificationType} = require('../constants/notificationTypeConstant')
+const { notificationType } = require('../constants/notificationTypeConstant')
 const { notificationModel } = require('../models/notificationModel')
 
 const adminService = {
@@ -59,7 +59,7 @@ const adminService = {
             if (emailSent) {
                 await notificationModel.insertEmailbyUserId(
                     reqBody.email_id,      // userEmail
-                    subject,   
+                    subject,
                     emailHtml,            // subject
                     user.id,               // userId
                     notificationType.NEW_USER_ROLE_REQUEST
@@ -120,7 +120,7 @@ const adminService = {
         if (!admin) return { admin: null };
         await dbModel.updateLoginStatus(admin.id)
         const isMatch = await bcrypt.compare(password, admin.password);
-        
+
         if (!isMatch) return { admin: null };
 
         const token = jwt.sign(
@@ -154,6 +154,24 @@ const adminService = {
             };
         }
     },
+    getClientData: async () => {
+        try {
+            const resp = await dbModel.getClientData();
+
+            return {
+                success: true,
+                message: 'Get Client sucesfull ',
+                data: resp.data || resp,
+            };
+
+        } catch (error) {
+            return {
+                success: false,
+                message: 'Failed To Client User fatch',
+                error: error.message,
+            };
+        }
+    },
 
     logOutUser: async (userId, reqBody) => {
         try {
@@ -176,7 +194,7 @@ const adminService = {
 
     assignPartnerRole: async (payload, admin) => {
         try {
-            
+
             const { user_id, role_id, permissions } = payload;
             const userData = await dbModel.getUserById(user_id)
 
@@ -189,22 +207,22 @@ const adminService = {
                 permissions,
                 admin.id
             );
-                const isApprove = await dbModel.approvePermissiopn(role_id, user_id, admin.id, payload.is_admin_approve)
-    
-                const userEmail = userData.email_id;
-                const toMailId = process.env.ADMIN_EMAIL;
-                const subject = `${userData.first_name} Permission Approved`;
-                const emailHtml = generateAccessGrantedEmailTemplate(userData.first_name, userData.email_id,);
-    
-                const sendmail = await sendEmailWithCustomFrom(toMailId, userEmail, subject, emailHtml);
-    
-                console.log(sendEmail);
-                
-    
-    
-                if (sendmail) {
-                    const insertemaildata = await notificationModel.insertEmailbyUserId(userEmail, subject, emailHtml, user_id, notificationType.APPROVE_ACCESS_LEVEL)
-                }
+            const isApprove = await dbModel.approvePermissiopn(role_id, user_id, admin.id, payload.is_admin_approve)
+
+            const userEmail = userData.email_id;
+            const toMailId = process.env.ADMIN_EMAIL;
+            const subject = `${userData.first_name} Permission Approved`;
+            const emailHtml = generateAccessGrantedEmailTemplate(userData.first_name, userData.email_id,);
+
+            const sendmail = await sendEmailWithCustomFrom(toMailId, userEmail, subject, emailHtml);
+
+            console.log(sendEmail);
+
+
+
+            if (sendmail) {
+                const insertemaildata = await notificationModel.insertEmailbyUserId(userEmail, subject, emailHtml, user_id, notificationType.APPROVE_ACCESS_LEVEL)
+            }
             return { message: 'Permissions assigned successfully' };
         } catch (error) {
             console.error(error)
@@ -227,15 +245,15 @@ const adminService = {
     },
 
 
-  getDashboardSummary: async () => {
-    const data = await dbModel.getDashboardCounts();
+    getDashboardSummary: async () => {
+        const data = await dbModel.getDashboardCounts();
 
-    return {
-      success: true,
-      message: 'Admin dashboard data fetched successfully',
-      data
-    };
-  },
+        return {
+            success: true,
+            message: 'Admin dashboard data fetched successfully',
+            data
+        };
+    },
 
 
     updateUserPermission: async (payload, userId) => {

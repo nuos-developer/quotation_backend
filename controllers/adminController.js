@@ -41,7 +41,7 @@ const adminController = {
 
     login: async (req, res) => {
         try {
-            console.log('admin:>>>>>>>',req.body);
+            console.log('admin:>>>>>>>', req.body);
 
             const { email_id, password } = req.body;
             const { admin, token } = await adminService.loginAdmin(email_id, password);
@@ -120,6 +120,17 @@ const adminController = {
             res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: HttpMessage.INTERNAL_SERVER_ERROR });
         }
     },
+    getClientData: async (req, res) => {
+        try {
+            const adminId = req.user.id
+            const result = await adminService.getClientData()
+            res.status(HttpStatus.CREATED).json({ message: result.message, data: result.data, });
+
+        } catch (error) {
+            console.error('Error in ("getUsers"):', error);
+            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: HttpMessage.INTERNAL_SERVER_ERROR });
+        }
+    },
 
     logoutUser: async (req, res) => {
         try {
@@ -136,7 +147,7 @@ const adminController = {
 
     assignPartnerAccess: async (req, res) => {
         try {
-            
+
             const admin = req.user;
             const result = await adminService.assignPartnerRole(req.body, admin);
 
@@ -162,18 +173,18 @@ const adminController = {
         }
     },
 
-   getDashboard: async (req, res) => {
-    try {
-      const result = await adminService.getDashboardSummary();
-      res.status(HttpStatus.OK).json(result);
-    } catch (error) {
-      console.error('Dashboard error:', error);
-      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
-        success: false,
-        message: 'Failed to fetch dashboard data'
-      });
-    }
-  },
+    getDashboard: async (req, res) => {
+        try {
+            const result = await adminService.getDashboardSummary();
+            res.status(HttpStatus.OK).json(result);
+        } catch (error) {
+            console.error('Dashboard error:', error);
+            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+                success: false,
+                message: 'Failed to fetch dashboard data'
+            });
+        }
+    },
 
     updateUserPermission: async (req, res) => {
         const result = await adminService.updateUserPermission(req.body, req.params.userId);

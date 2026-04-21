@@ -17,6 +17,8 @@ router.post('/admin_login', validateRequest(adminLoginSchema), adminController.l
 
 router.get('/getUsers', authMiddleware(), adminController.getUsers)
 
+router.get('/get_client_data', authMiddleware(), adminController.getClientData)
+
 router.post('/logout', authMiddleware(), adminController.logoutUser)
 
 router.get('/getModule', authMiddleware(), commController.getModules)

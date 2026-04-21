@@ -252,6 +252,30 @@ const dbModel = {
       throw error;
     }
   },
+  getClientData: async () => {
+    try {
+      // const { } = reqBody
+      const query =
+        `SELECT U.id, U.user_name, U.first_name, U.last_name, U.email_id, U.mobile_number, UD.address, UD.pin_code , UD.country , UD.state , UD.district , UD.taluk, UD.division , 
+                  UD.region ,
+                  UD.company_address , UD.company_name, UD.gst_name, u.role_name , u.is_admin_approve
+                  FROM users u 
+                  INNER JOIN users_details ud ON U.ID = ud.user_id 
+                  inner join roles r on r.id = u.role_id 
+                  where u.role_name = 'Client' AND u.deleted_at IS NULL ORDER BY u.id DESC`;
+
+      const result = await pool.query(query);
+
+      return {
+        success: true,
+        data: result.rows,
+      };
+
+    } catch (error) {
+      console.error('Error finding admin by email:', error);
+      throw error;
+    }
+  },
 
   logOutUser: async (userId) => {
     try {
@@ -283,15 +307,15 @@ const dbModel = {
     }
   },
 
-assignPartnerRoleBulk: async (userId, roleId, permissions, adminId) => {
-  const client = await pool.connect();
+  assignPartnerRoleBulk: async (userId, roleId, permissions, adminId) => {
+    const client = await pool.connect();
 
-  console.log(userId, roleId, permissions, adminId);
+    console.log(userId, roleId, permissions, adminId);
 
-  try {
-    await client.query('BEGIN');
+    try {
+      await client.query('BEGIN');
 
-    const query = `
+      const query = `
       INSERT INTO permissions
         (user_id, role_id, module_id, can_create, can_view, can_update, can_delete, assigned_by)
       VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
@@ -305,28 +329,28 @@ assignPartnerRoleBulk: async (userId, roleId, permissions, adminId) => {
         updated_at = NOW();
     `;
 
-    for (const m of permissions) {
-      await client.query(query, [
-        userId,
-        roleId,
-        m.module_id,
-        m.can_create,
-        m.can_view,
-        m.can_update,
-        m.can_delete,
-        adminId
-      ]);
-    }
+      for (const m of permissions) {
+        await client.query(query, [
+          userId,
+          roleId,
+          m.module_id,
+          m.can_create,
+          m.can_view,
+          m.can_update,
+          m.can_delete,
+          adminId
+        ]);
+      }
 
-    await client.query('COMMIT');
-  } catch (error) {
-    await client.query('ROLLBACK');
-    console.error('Error assigning permissions:', error);
-    throw error;
-  } finally {
-    client.release();
-  }
-},
+      await client.query('COMMIT');
+    } catch (error) {
+      await client.query('ROLLBACK');
+      console.error('Error assigning permissions:', error);
+      throw error;
+    } finally {
+      client.release();
+    }
+  },
 
   approvePermissiopn: async (role_id, user_id, adminId, is_admin_approve) => {
 
