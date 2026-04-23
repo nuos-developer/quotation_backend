@@ -1,6 +1,7 @@
 const commonServices = require('../common/commonSevices')
 const { HttpStatus } = require('../constants/httpStatusCodeConstant')
-const { HttpMessage } = require('../constants/httpStatusMessageConstant')
+const { HttpMessage } = require('../constants/httpStatusMessageConstant');
+const adminService = require('../services/userServices');
 
 const commonController = {
 
@@ -113,10 +114,10 @@ const commonController = {
         }
     },
 
-    changePassword : async (req, res)=>{
-            try {
+    changePassword: async (req, res) => {
+        try {
 
-                userId = req.params.userId
+            userId = req.params.userId
             const response = await commonServices.changePassword(req.body, userId);
 
             if (!response.success) {
@@ -183,7 +184,7 @@ const commonController = {
     },
     getZone: async (req, res) => {
         try {
-            const countryId= req.params.countryId
+            const countryId = req.params.countryId
             const partners = await commonServices.getZone(countryId);
 
             if (!partners || partners.length === 0) {
@@ -202,7 +203,7 @@ const commonController = {
     },
     getStates: async (req, res) => {
         try {
-            const zoneId= req.params.zoneId
+            const zoneId = req.params.zoneId
             const partners = await commonServices.getStates(zoneId);
 
             if (!partners || partners.length === 0) {
@@ -224,8 +225,8 @@ const commonController = {
         try {
 
             const stateId = req.params.stateId
-            console.log('stateId :....',stateId);
-            
+            console.log('stateId :....', stateId);
+
             const partners = await commonServices.getCities(stateId);
 
             if (!partners || partners.length === 0) {
@@ -261,6 +262,39 @@ const commonController = {
             });
         }
     },
+
+
+    addWire: async (req, res) => {
+        try {
+            const userId = req.user.id;
+            const wireData = req.body;
+
+            // 🔥 BASIC VALIDATION
+            if ( !wireData.wiring_name ) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'wiring_type, wiring_name and wiring_type_id are required'
+                });
+            }
+
+            const resp = await commonServices.addWire(userId, wireData);
+
+            if (!resp.success) {
+                return res.status(400).json(resp);
+            }
+
+            return res.status(201).json(resp);
+
+        } catch (error) {
+            console.error('Error in addWire:', error);
+
+            return res.status(500).json({
+                success: false,
+                message: 'Internal Server Error'
+            });
+        }
+    },
+
 
 }
 

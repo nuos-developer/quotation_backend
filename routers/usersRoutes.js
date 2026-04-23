@@ -18,6 +18,8 @@ router.put('/update_user_details/:userId', authMiddleware(), userController.upda
 router.get('/get_permission_data', authMiddleware(), userController.getPermissionUsers)
 
 // router.get('/dashboard', authMiddleware(), userController.UserDashboard)
+router.post('/create_client',  authMiddleware(), userController.createClient)
+
 
 
 
@@ -45,6 +47,9 @@ router.get('/get_state/:zoneId', commonController.getStates)
 router.get('/get_devision/:stateId',commonController.getCities)
 
 router.get('/get_channels',commonController.getChannels )
+
+router.post('/add_wire',authMiddleware(), commonController.addWire)
+
 
 
 

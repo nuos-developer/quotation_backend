@@ -256,13 +256,35 @@ const dbModel = {
     try {
       // const { } = reqBody
       const query =
-        `SELECT U.id, U.user_name, U.first_name, U.last_name, U.email_id, U.mobile_number, UD.address, UD.pin_code , UD.country , UD.state , UD.district , UD.taluk, UD.division , 
-                  UD.region ,
-                  UD.company_address , UD.company_name, UD.gst_name, u.role_name , u.is_admin_approve
-                  FROM users u 
-                  INNER JOIN users_details ud ON U.ID = ud.user_id 
-                  inner join roles r on r.id = u.role_id 
-                  where u.role_name = 'Client' AND u.deleted_at IS NULL ORDER BY u.id DESC`;
+        `
+SELECT 
+    c.id,
+    c.client_id,
+    c.user_id,
+    r.role_name,
+    u.role_id,
+
+    c.first_name,
+    c.last_name,
+    c.mobile_number,
+    c.email_id,
+
+    c.address,
+    c.pin_code,
+    c.country,
+    c.state,
+    c.district,
+    c.taluk,
+    c.division,
+    c.region,
+
+    c.company_name,
+    c.company_address,
+    c.gst_name
+
+FROM clients c
+INNER JOIN users u ON c.user_id = u.id
+INNER JOIN roles r ON r.id = u.role_id ORDER BY u.id DESC`;
 
       const result = await pool.query(query);
 

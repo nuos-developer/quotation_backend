@@ -163,7 +163,43 @@ const adminService = {
         error: error.message,
       };
     }
+  },
+
+
+ createClient : async (userId, userData) => {
+  try {
+    const resp = await userModel.createClient(userId, userData);
+
+    return {
+      success: true,
+      message: 'Client Created Successfully',
+      data: resp
+    };
+
+  } catch (error) {
+
+    if (error.code === 'DUPLICATE') {
+      return {
+        success: false,
+        message: 'Client already exists with same email or mobile number'
+      };
+    }
+
+    if (error.code === '23505') {
+      return {
+        success: false,
+        message: 'Client ID already exists (rare conflict, try again)'
+      };
+    }
+
+    return {
+      success: false,
+      message: 'Failed to insert client',
+      error: error.message
+    };
   }
+},
+
 
 }
 

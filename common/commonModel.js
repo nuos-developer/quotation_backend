@@ -151,6 +151,9 @@ const commDbModel = {
             throw error;
         }
     },
+
+
+
     checkUserId: async (userId) => {
         try {
             const result = await pool.query(
@@ -257,6 +260,35 @@ const commDbModel = {
     },
 
 
+
+
+    addWire: async (userId, data) => {
+
+        const query = `
+    INSERT INTO wiring_types (
+      user_id,
+      wiring_type,
+      wiring_name,
+      wiring_type_id,
+      description,
+      is_active
+    )
+    VALUES ($1,$2,$3,$4,$5,$6)
+    RETURNING *;
+  `;
+
+        const values = [
+            userId,
+            data.wiring_type || null,
+            data.wiring_name,
+            data.wiring_type_id || null,
+            data.description || null,
+            data.is_active ?? true
+        ];
+
+        const result = await pool.query(query, values);
+        return result.rows[0];
+    },
 
 }
 

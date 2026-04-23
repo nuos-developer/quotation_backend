@@ -48,21 +48,37 @@ const userController = {
         }
     },
 
-    insertUserDetails: async (req, res) => {
+
+    createClient: async (req, res) => {
         try {
-            const userId = req.params.userId;
+            
+            const userId = req.user.id;
+            
             const userData = req.body;
-            const result = await userService.insertUserData(userId, userData);
+            
+
+            const result = await userService.createClient(userId, userData);
 
             if (!result.success) {
-                return res.status(HttpStatus.BAD_REQUEST).json({ message: result.message });
+                return res.status(400).json({
+                    success: false,
+                    message: result.message
+                });
             }
 
-            res.status(HttpStatus.CREATED).json({ message: result.message, data: result.data, });
+            return res.status(201).json({
+                success: true,
+                message: result.message,
+                data: result.data
+            });
 
         } catch (error) {
-            console.error('Error in insertUserDetails:', error);
-            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: HttpMessage.INTERNAL_SERVER_ERROR });
+            console.error('Error in createClient:', error);
+
+            return res.status(500).json({
+                success: false,
+                message: 'Internal Server Error'
+            });
         }
     },
 

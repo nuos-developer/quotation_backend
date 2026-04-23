@@ -3,7 +3,7 @@ const { commDbModel } = require('../common/commonModel');
 const { generateOTP, hashOTP } = require('../utils/generateOtp');
 const { sendEmail } = require('../utils/nodeMailer')
 // const {generateOTP, hashOTP} = require('../utils/generateOtp')
-const { generateOtpEmailTemplate , generateForgotPasswordOtpTemplate } = require('../utils/emailTemplates');
+const { generateOtpEmailTemplate, generateForgotPasswordOtpTemplate } = require('../utils/emailTemplates');
 
 const commonServices = {
 
@@ -95,9 +95,38 @@ const commonServices = {
         }
     },
 
+
+    addWire: async (userId, wireData) => {
+        try {
+
+            const resp = await commDbModel.addWire(userId, wireData);
+
+            return {
+                success: true,
+                message: 'Wire added successfully',
+                data: resp
+            };
+
+        } catch (error) {
+
+            // if (error.code === '23505') {
+            //     return {
+            //         success: false,
+            //         message: 'Wiring type already exists'
+            //     };
+            // }
+
+            return {
+                success: false,
+                message: 'Failed to add wire',
+                error: error.message
+            };
+        }
+    },
+
     verifyEmailId: async (reqBody) => {
         try {
-            const otp = generateOTP(); 
+            const otp = generateOTP();
             const hashedOtp = hashOTP(otp.toString());
 
             const subject = `${reqBody.first_name}, here's your OTP to verify your email address on NUOS`;
@@ -106,7 +135,7 @@ const commonServices = {
             console.log('Hashed OTP:', hashedOtp);
 
             // Save OTP (linked to user or email)
-           const otpResp =  await commDbModel.saveOtp( hashedOtp);
+            const otpResp = await commDbModel.saveOtp(hashedOtp);
 
             // Generate Email HTML
             const emailHtml = generateOtpEmailTemplate(reqBody.first_name, otp);
@@ -119,9 +148,9 @@ const commonServices = {
                 success: true,
                 message: 'OTP sent successfully to your email address.',
                 data: {
-                    id : otpResp.id,
-                    email: reqBody.email_id, 
-                    otp:otp,
+                    id: otpResp.id,
+                    email: reqBody.email_id,
+                    otp: otp,
                     otpSent: true,
                     mailInfo: sendMailResp.messageId || null,
                 },
@@ -139,7 +168,7 @@ const commonServices = {
 
     forgetPassword: async (reqBody) => {
         try {
-            const otp = generateOTP(); 
+            const otp = generateOTP();
             const hashedOtp = hashOTP(otp.toString());
 
             const subject = `${reqBody.first_name}, here's your OTP to forget your Password on NUOS`;
@@ -150,23 +179,23 @@ const commonServices = {
             const userData = await commDbModel.getUserDataByEmail(reqBody.email_id)
 
             // Save OTP (linked to user or email)
-            
+
             // Generate Email HTML
             const emailHtml = generateForgotPasswordOtpTemplate(reqBody.first_name, otp);
-            
+
             // Send OTP Email
             const sendMailResp = await sendEmail(reqBody.email_id, subject, emailHtml);
-            
-            const otpResp =  await commDbModel.saveOtp( hashedOtp);
+
+            const otpResp = await commDbModel.saveOtp(hashedOtp);
             // Return API response
             return {
                 success: true,
                 message: 'OTP sent successfully to your email address.',
                 data: {
-                    id : otpResp.id,
-                    userId : userData.id,
-                    email: reqBody.email_id, 
-                    otp:otp,
+                    id: otpResp.id,
+                    userId: userData.id,
+                    email: reqBody.email_id,
+                    otp: otp,
                     otpSent: true,
                     mailInfo: sendMailResp.messageId || null,
                 },
@@ -183,52 +212,52 @@ const commonServices = {
     },
 
 
-changePassword: async (reqBody, userId) => {
-  try {
-    const { password, confirm_password } = reqBody;
+    changePassword: async (reqBody, userId) => {
+        try {
+            const { password, confirm_password } = reqBody;
 
-    if (!password || !confirm_password) {
-      return {
-        success: false,
-        message: 'Password and confirm password are required'
-      };
-    }
+            if (!password || !confirm_password) {
+                return {
+                    success: false,
+                    message: 'Password and confirm password are required'
+                };
+            }
 
-    if (password !== confirm_password) {
-      return {
-        success: false,
-        message: 'Password and confirm password do not match'
-      };
-    }
+            if (password !== confirm_password) {
+                return {
+                    success: false,
+                    message: 'Password and confirm password do not match'
+                };
+            }
 
-    // Generate new salt & hash
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
+            // Generate new salt & hash
+            const salt = await bcrypt.genSalt(10);
+            const hashedPassword = await bcrypt.hash(password, salt);
 
-    // Update password in DB
-    const result = await commDbModel.changePassword(userId, hashedPassword, salt);
+            // Update password in DB
+            const result = await commDbModel.changePassword(userId, hashedPassword, salt);
 
-    if (!result) {
-      return {
-        success: false,
-        message: 'User not found or password not updated'
-      };
-    }
+            if (!result) {
+                return {
+                    success: false,
+                    message: 'User not found or password not updated'
+                };
+            }
 
-    return {
-      success: true,
-      message: 'Password changed successfully'
-    };
+            return {
+                success: true,
+                message: 'Password changed successfully'
+            };
 
-  } catch (error) {
-    console.error('Change Password Service Error:', error);
-    return {
-      success: false,
-      message: 'Failed to change password',
-      error: error.message
-    };
-  }
-},
+        } catch (error) {
+            console.error('Change Password Service Error:', error);
+            return {
+                success: false,
+                message: 'Failed to change password',
+                error: error.message
+            };
+        }
+    },
 
 
 }

@@ -215,7 +215,7 @@ const productModel = {
     getWireType: async () => {
         try {
             const result = await pool.query(
-                `SELECT id, wiring_name FROM wiring_type ; `
+                `SELECT id, wiring_name FROM wiring_types ; `
             );
 
             if (!result.rows.length) {

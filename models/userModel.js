@@ -280,6 +280,126 @@ const userModel = {
             };
         }
     },
+
+
+createClient: async (userId, data) => {
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    // 🔥 STEP 1: CHECK duplicate email/mobile
+    const checkQuery = `
+      SELECT 1 FROM clients 
+      WHERE email_id = $1 OR mobile_number = $2
+      LIMIT 1;
+    `;
+
+    const checkRes = await client.query(checkQuery, [
+      data.email_id,
+      data.mobile_number
+    ]);
+
+    if (checkRes.rows.length > 0) {
+      throw { code: 'DUPLICATE' };
+    }
+
+    // 🔥 STEP 2: GET LAST client_id
+    const lastClientQuery = `
+      SELECT client_id 
+      FROM clients 
+      WHERE user_id = $1 
+      ORDER BY id DESC 
+      LIMIT 1
+      FOR UPDATE;
+    `;
+
+    const lastResult = await client.query(lastClientQuery, [userId]);
+
+    let nextNumber = 1;
+
+    if (lastResult.rows.length > 0) {
+      const lastClientId = lastResult.rows[0].client_id;
+
+      const match = lastClientId.match(/(\d+)$/);
+      if (match) {
+        nextNumber = parseInt(match[0]) + 1;
+      }
+    }
+
+    // 🔥 STEP 3: GENERATE client_id
+    const client_id = `CL0${userId}${nextNumber}`;
+    console.log(client_id);
+    
+
+    // 🔥 STEP 4: INSERT (HANDLE OPTIONAL FIELDS)
+    const query = `
+      INSERT INTO clients (
+        user_id,
+        client_id,
+        first_name,
+        last_name,
+        mobile_number,
+        email_id,
+        address,
+        pin_code,
+        country,
+        state,
+        district,
+        taluk,
+        division,
+        region,
+        company_name,
+        gst_name,
+        company_address
+      )
+      VALUES (
+        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17
+      )
+      RETURNING *;
+    `;
+
+    const values = [
+      userId,
+      client_id,
+      data.first_name,
+      data.last_name,
+      data.mobile_number,
+      data.email_id,
+      data.address,
+      data.pin_code,
+      data.country,
+      data.state,
+      data.district,
+
+      // 🔥 OPTIONAL FIELDS SAFE
+      data.taluk || null,
+      data.division || null,
+      data.region || null,
+      data.company_name || null,
+      data.gst_name || null,
+      data.company_address || null
+    ];
+console.log(values);
+
+    const result = await client.query(query, values);
+
+    await client.query('COMMIT');
+
+    return result.rows[0];
+
+  } catch (error) {
+      console.log(error);
+    await client.query('ROLLBACK');
+    
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+
+
 }
 
 
