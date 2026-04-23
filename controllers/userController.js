@@ -51,11 +51,11 @@ const userController = {
 
     createClient: async (req, res) => {
         try {
-            
+
             const userId = req.user.id;
-            
+
             const userData = req.body;
-            
+
 
             const result = await userService.createClient(userId, userData);
 
@@ -81,6 +81,50 @@ const userController = {
             });
         }
     },
+
+
+    updateClient: async (req, res) => {
+        try {
+            const userId = req.user.id;
+            const clientId = req.params.id;
+            const data = req.body;
+
+            const result = await userService.updateClient(userId, clientId, data);
+
+            if (!result.success) {
+                return res.status(400).json(result);
+            }
+
+            return res.status(200).json(result);
+
+        } catch (error) {
+            console.error('updateClient error:', error);
+            return res.status(500).json({ success: false, message: 'Internal Server Error' });
+        }
+    },
+
+     deleteClient : async (req, res) => {
+  try {
+    const clientId = req.params.id;
+    const userId = req.user.id;   // 🔥 who deleted
+
+    const result = await userService.deleteClient(clientId, userId);
+
+    if (!result.success) {
+      return res.status(404).json(result);
+    }
+
+    return res.status(200).json(result);
+
+  } catch (error) {
+    console.error('deleteClient error:', error);
+
+    return res.status(500).json({
+      success: false,
+      message: 'Internal Server Error'
+    });
+  }
+},
 
     getUserInfo: async (req, res) => {
         try {

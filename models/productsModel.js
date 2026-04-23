@@ -492,27 +492,30 @@ const productModel = {
     p.products_wise_items,
     p.client_id,
 
-    jsonb_build_object(
-        'id', u.id,
-        'first_name', u.first_name,
-        'last_name', u.last_name,
-        'address', ud.address,
-        'pin_code', ud.pin_code,
-        'country', ud.country,
-        'state', ud.state,
-        'district', ud.district,
-        'taluk', ud.taluk,
-        'division', ud.division,
-        'region', ud.region,
-        'company_name', ud.company_name,
-        'gst_name', ud.gst_name,
-        'company_address', ud.company_address,
-        'userName', u.user_name,
-        'email', u.email_id,
-        'phone', u.mobile_number,
-        'role', u.role_name
-    ) AS user_details
+       jsonb_build_object(
+        'client_id', c.client_id,
+        'first_name', c.first_name,
+        'last_name', c.last_name,
+        'email', c.email_id,
+        'mobile', c.mobile_number,
+        'address', c.address,
+        'pin_code', c.pin_code,
+        'country', c.country,
+        'state', c.state,
+        'district', c.district,
+        'company_name', c.company_name,
+        'gst_name', c.gst_name,
+        'company_address', c.company_address
+    ) AS client_details,
 
+        jsonb_build_object(
+        'id', u.id,
+        'user_name', u.user_name,
+        'email', u.email_id,
+        'mobile', u.mobile_number,
+        'role_id', u.role_id
+    ) AS created_by_user
+    
 FROM proposals p
 
 /* ---------- FLOOR JSON (SAFE ARRAY HANDLING) ---------- */
@@ -609,11 +612,11 @@ LEFT JOIN LATERAL (
     ) fl
 ) floors ON TRUE
 
-LEFT JOIN users u
-  ON u.id = p.client_id
+LEFT JOIN clients c 
+  ON c.id = p.client_id  
 
-LEFT JOIN users_details ud
-  ON ud.user_id = u.id
+LEFT JOIN users u 
+  ON u.id = p.created_by    
 
 WHERE p.deleted_at IS NULL;
 ;

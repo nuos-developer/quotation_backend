@@ -282,30 +282,30 @@ const userModel = {
     },
 
 
-createClient: async (userId, data) => {
-  const client = await pool.connect();
+    createClient: async (userId, data) => {
+        const client = await pool.connect();
 
-  try {
-    await client.query('BEGIN');
+        try {
+            await client.query('BEGIN');
 
-    // 🔥 STEP 1: CHECK duplicate email/mobile
-    const checkQuery = `
+            // 🔥 STEP 1: CHECK duplicate email/mobile
+            const checkQuery = `
       SELECT 1 FROM clients 
       WHERE email_id = $1 OR mobile_number = $2
       LIMIT 1;
     `;
 
-    const checkRes = await client.query(checkQuery, [
-      data.email_id,
-      data.mobile_number
-    ]);
+            const checkRes = await client.query(checkQuery, [
+                data.email_id,
+                data.mobile_number
+            ]);
 
-    if (checkRes.rows.length > 0) {
-      throw { code: 'DUPLICATE' };
-    }
+            if (checkRes.rows.length > 0) {
+                throw { code: 'DUPLICATE' };
+            }
 
-    // 🔥 STEP 2: GET LAST client_id
-    const lastClientQuery = `
+            // 🔥 STEP 2: GET LAST client_id
+            const lastClientQuery = `
       SELECT client_id 
       FROM clients 
       WHERE user_id = $1 
@@ -314,26 +314,26 @@ createClient: async (userId, data) => {
       FOR UPDATE;
     `;
 
-    const lastResult = await client.query(lastClientQuery, [userId]);
+            const lastResult = await client.query(lastClientQuery, [userId]);
 
-    let nextNumber = 1;
+            let nextNumber = 1;
 
-    if (lastResult.rows.length > 0) {
-      const lastClientId = lastResult.rows[0].client_id;
+            if (lastResult.rows.length > 0) {
+                const lastClientId = lastResult.rows[0].client_id;
 
-      const match = lastClientId.match(/(\d+)$/);
-      if (match) {
-        nextNumber = parseInt(match[0]) + 1;
-      }
-    }
+                const match = lastClientId.match(/(\d+)$/);
+                if (match) {
+                    nextNumber = parseInt(match[0]) + 1;
+                }
+            }
 
-    // 🔥 STEP 3: GENERATE client_id
-    const client_id = `CL0${userId}${nextNumber}`;
-    console.log(client_id);
-    
+            // 🔥 STEP 3: GENERATE client_id
+            const client_id = `CL0${userId}${nextNumber}`;
+            console.log(client_id);
 
-    // 🔥 STEP 4: INSERT (HANDLE OPTIONAL FIELDS)
-    const query = `
+
+            // 🔥 STEP 4: INSERT (HANDLE OPTIONAL FIELDS)
+            const query = `
       INSERT INTO clients (
         user_id,
         client_id,
@@ -359,44 +359,125 @@ createClient: async (userId, data) => {
       RETURNING *;
     `;
 
-    const values = [
-      userId,
-      client_id,
-      data.first_name,
-      data.last_name,
-      data.mobile_number,
-      data.email_id,
-      data.address,
-      data.pin_code,
-      data.country,
-      data.state,
-      data.district,
+            const values = [
+                userId,
+                client_id,
+                data.first_name,
+                data.last_name,
+                data.mobile_number,
+                data.email_id,
+                data.address,
+                data.pin_code,
+                data.country,
+                data.state,
+                data.district,
 
-      // 🔥 OPTIONAL FIELDS SAFE
-      data.taluk || null,
-      data.division || null,
-      data.region || null,
-      data.company_name || null,
-      data.gst_name || null,
-      data.company_address || null
-    ];
-console.log(values);
+                // 🔥 OPTIONAL FIELDS SAFE
+                data.taluk || null,
+                data.division || null,
+                data.region || null,
+                data.company_name || null,
+                data.gst_name || null,
+                data.company_address || null
+            ];
+            console.log(values);
 
-    const result = await client.query(query, values);
+            const result = await client.query(query, values);
 
-    await client.query('COMMIT');
+            await client.query('COMMIT');
 
-    return result.rows[0];
+            return result.rows[0];
 
-  } catch (error) {
-      console.log(error);
-    await client.query('ROLLBACK');
-    
-    throw error;
-  } finally {
-    client.release();
-  }
-}
+        } catch (error) {
+            console.log(error);
+            await client.query('ROLLBACK');
+
+            throw error;
+        } finally {
+            client.release();
+        }
+    },
+
+    updateClient: async (userId, clientId, data) => {
+
+        const client = await pool.connect();
+
+        try {
+            await client.query('BEGIN');
+
+      
+
+            // 🔥 UPDATE QUERY
+            const query = `
+      UPDATE clients SET
+        first_name = $1,
+        last_name = $2,
+        mobile_number = $3,
+        email_id = $4,
+        address = $5,
+        pin_code = $6,
+        country = $7,
+        state = $8,
+        district = $9,
+        taluk = $10,
+        division = $11,
+        region = $12,
+        company_name = $13,
+        gst_name = $14,
+        company_address = $15,
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = $16
+      RETURNING *;
+    `;
+
+            const values = [
+                data.first_name,
+                data.last_name,
+                data.mobile_number,
+                data.email_id,
+                data.address,
+                data.pin_code,
+                data.country,
+                data.state,
+                data.district,
+                data.taluk || null,
+                data.division || null,
+                data.region || null,
+                data.company_name || null,
+                data.gst_name || null,
+                data.company_address || null,
+                clientId
+            ];
+
+            const result = await client.query(query, values);
+
+            await client.query('COMMIT');
+
+            return result.rows[0];
+
+        } catch (error) {
+            await client.query('ROLLBACK');
+            throw error;
+        } finally {
+            client.release();
+        }
+    },
+
+    deleteClient : async (clientId, userId) => {
+  const query = `
+    UPDATE clients
+    SET 
+      
+      deleted_at = CURRENT_TIMESTAMP,
+      deleted_by = $1
+    WHERE id = $2
+    RETURNING *;
+  `;
+
+  const result = await pool.query(query, [userId, clientId]);
+
+  return result.rows[0];
+},
 
 
 

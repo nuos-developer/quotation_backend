@@ -166,39 +166,93 @@ const adminService = {
   },
 
 
- createClient : async (userId, userData) => {
-  try {
-    const resp = await userModel.createClient(userId, userData);
+  createClient: async (userId, userData) => {
+    try {
+      const resp = await userModel.createClient(userId, userData);
 
-    return {
-      success: true,
-      message: 'Client Created Successfully',
-      data: resp
-    };
+      return {
+        success: true,
+        message: 'Client Created Successfully',
+        data: resp
+      };
 
-  } catch (error) {
+    } catch (error) {
 
-    if (error.code === 'DUPLICATE') {
+      if (error.code === 'DUPLICATE') {
+        return {
+          success: false,
+          message: 'Client already exists with same email or mobile number'
+        };
+      }
+
+      if (error.code === '23505') {
+        return {
+          success: false,
+          message: 'Client ID already exists (rare conflict, try again)'
+        };
+      }
+
       return {
         success: false,
-        message: 'Client already exists with same email or mobile number'
+        message: 'Failed to insert client',
+        error: error.message
       };
     }
+  },
 
-    if (error.code === '23505') {
+  updateClient: async (userId, clientId, data) => {
+    try {
+
+      const resp = await userModel.updateClient(userId, clientId, data);
+
+      return {
+        success: true,
+        message: 'Client updated successfully',
+        data: resp
+      };
+
+    } catch (error) {
+
+      if (error.code === 'DUPLICATE') {
+        return {
+          success: false,
+          message: 'Email or mobile already exists'
+        };
+      }
+
       return {
         success: false,
-        message: 'Client ID already exists (rare conflict, try again)'
+        message: 'Failed to update client',
+        error: error.message
       };
     }
+  },
+  deleteClient: async (clientId, userId) => {
+    try {
 
-    return {
-      success: false,
-      message: 'Failed to insert client',
-      error: error.message
-    };
-  }
-},
+      const resp = await userModel.deleteClient(clientId, userId);
+
+      if (!resp) {
+        return {
+          success: false,
+          message: 'Client not found'
+        };
+      }
+
+      return {
+        success: true,
+        message: 'Client deleted successfully',
+        data: resp
+      };
+
+    } catch (error) {
+      return {
+        success: false,
+        message: 'Failed to delete client',
+        error: error.message
+      };
+    }
+  },
 
 
 }

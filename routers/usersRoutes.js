@@ -20,6 +20,10 @@ router.get('/get_permission_data', authMiddleware(), userController.getPermissio
 // router.get('/dashboard', authMiddleware(), userController.UserDashboard)
 router.post('/create_client',  authMiddleware(), userController.createClient)
 
+router.put('/update_cleint/:id',authMiddleware(), userController.updateClient )
+
+router.delete('/delete_client/:id', authMiddleware(), userController.deleteClient);
+
 
 
 
