@@ -329,7 +329,6 @@ const userModel = {
 
             // 🔥 STEP 3: GENERATE client_id
             const client_id = `CL0${userId}${nextNumber}`;
-            console.log(client_id);
 
 
             // 🔥 STEP 4: INSERT (HANDLE OPTIONAL FIELDS)
@@ -380,7 +379,6 @@ const userModel = {
                 data.gst_name || null,
                 data.company_address || null
             ];
-            console.log(values);
 
             const result = await client.query(query, values);
 
