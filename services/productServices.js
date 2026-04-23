@@ -173,7 +173,7 @@ const productService = {
 
     createProposal: async (reqBody, userId) => {
         try {
-            console.log('product :>>>>>>>>>>>>', reqBody.floors);
+            console.log('product :>>>>>>>>>>>>', reqBody);
 
             // const isCheckProduct = await productModel.checkProductById(reqBody.products_wise_items.productIds)
             // console.log(':>>>>>>>>>>>>', isCheckProduct.success)
@@ -188,11 +188,12 @@ const productService = {
                 message: 'proposal Insertes successfully',
                 data: resp.data || resp,
             };
+            
         } catch (error) {
             console.error('Error inseting proposal:', error);
             return {
                 success: false,
-                message: 'Failed to update proposal',
+                message: 'Failed to insert proposal',
                 error: error.message,
             };
         }

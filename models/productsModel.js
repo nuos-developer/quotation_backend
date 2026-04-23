@@ -2,52 +2,52 @@
 const { pool } = require('../config/dbConn');
 
 const productModel = {
-   addProduct: async (reqBody, userId) => {
-  try {
-    const {
-      product_name,
-      category,
-      mod_size,
-      price,
-      wiring_type,
-      zigbee_type,
-    } = reqBody;
+    addProduct: async (reqBody, userId) => {
+        try {
+            const {
+                product_name,
+                category,
+                mod_size,
+                price,
+                wiring_type,
+                zigbee_type,
+            } = reqBody;
 
-    // ✅ convert wiring_type_id to integer
-    const wiring_type_id = parseInt(reqBody.wiring_type_id, 10);
+            // ✅ convert wiring_type_id to integer
+            const wiring_type_id = parseInt(reqBody.wiring_type_id, 10);
 
-    // ✅ validate integer
-    if (!Number.isInteger(wiring_type_id)) {
-      throw new Error('wiring_type_id must be a valid integer');
-    }
+            // ✅ validate integer
+            if (!Number.isInteger(wiring_type_id)) {
+                throw new Error('wiring_type_id must be a valid integer');
+            }
 
-    const query = `
+            const query = `
       INSERT INTO products 
       (user_id, product_name, category, mod_size, price, wiring_type_id, wiring_type, zigbee_type, created_by)
       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
       RETURNING id;
     `;
 
-    const values = [
-      userId,
-      product_name,
-      category,
-      mod_size,
-      price,
-      wiring_type_id, // ✅ integer now
-      wiring_type,
-      zigbee_type,
-      userId
-    ];
+            const values = [
+                userId,
+                product_name,
+                category,
+                mod_size,
+                price,
+                wiring_type_id, // ✅ integer now
+                wiring_type,
+                zigbee_type,
+                userId
+            ];
 
-    const result = await pool.query(query, values);
-    return result.rows[0];
+            const result = await pool.query(query, values);
+            return result.rows[0];
 
-  } catch (error) {
-    console.error("Error inserting product:", error.message);
-    throw error;
-  }
-},
+        } catch (error) {
+            console.error("Error inserting product:", error.message);
+            throw error;
+        }
+    },
 
 
     addProductImages: async (productId, imageUrls) => {
@@ -211,7 +211,7 @@ const productModel = {
             };
         }
     },
-    
+
     getWireType: async () => {
         try {
             const result = await pool.query(
@@ -240,7 +240,7 @@ const productModel = {
         }
     },
 
-    
+
     updateProduct: async (productId, reqBody, userId) => {
         try {
             const {
@@ -307,7 +307,7 @@ const productModel = {
             WHERE p.id = $1
             RETURNING *;`;
 
-            const result = await pool.query(query, [ productId]);
+            const result = await pool.query(query, [productId]);
 
             return {
                 success: true,
@@ -332,7 +332,7 @@ const productModel = {
             WHERE p.id = $1
             RETURNING *;`;
 
-            const result = await pool.query(query, [ productId]);
+            const result = await pool.query(query, [productId]);
 
             return {
                 success: true,
@@ -414,11 +414,15 @@ const productModel = {
                 floor,
                 grand_total,
                 installation_percentage,
-                products_wise_items
+                products_wise_items, proposal_type,
+                recipient_name,
+                ship_to_address, use_same_address, use_same_recipient
+
             } = reqBody;
 
+
             const query = `
-      INSERT INTO proposals (
+      INSERT INTO proposals(
         client_id,
         proposal_id,
         commissioning_percentage,
@@ -428,6 +432,9 @@ const productModel = {
         grand_total,
         installation_percentage,
         products_wise_items,
+        proposal_type,
+        recipient_name,
+        ship_to_address, use_same_address, use_same_recipient,
         created_by
       )
       VALUES (
@@ -437,7 +444,7 @@ const productModel = {
         $7,
         $8,
         $9::jsonb,
-        $10
+        $10, $11, $12, $13, $14, $15
       )
       RETURNING *;
     `;
@@ -451,9 +458,15 @@ const productModel = {
                 JSON.stringify(floor),               // REQUIRED
                 grand_total,
                 installation_percentage,
-                JSON.stringify(products_wise_items), // REQUIRED
+                JSON.stringify(products_wise_items),
+                proposal_type,
+                recipient_name,
+                ship_to_address, use_same_address, use_same_recipient,// REQUIRED
                 userId
             ];
+            // console.log(':>>>>>>>>>>>',values);
+
+
 
             return (await pool.query(query, values)).rows[0];
 

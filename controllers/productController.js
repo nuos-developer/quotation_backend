@@ -162,7 +162,7 @@ const productController = {
             const reqBody = req.body
             const userId = req.user.id
 
-            console.log(':>>>>>>>>>>>>>>>', reqBody, userId);
+            console.log(':>>>>>>>>>>>>>>>', userId);
             const resp = await productService.createProposal(reqBody, userId)
 
             res.status(HttpStatus.CREATED).json({
