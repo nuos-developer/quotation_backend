@@ -27,7 +27,7 @@ router.delete('/delete_client/:id', authMiddleware(), userController.deleteClien
 
 
 
-router.get('/getPermissionById/:userId', userController.getPermissionByuserId)
+router.get('/getPermissionById/:userId', authMiddleware(), userController.getPermissionByuserId)
 
 router.post('/changePassword/:userId', commonController.changePassword)
 

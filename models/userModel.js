@@ -288,23 +288,27 @@ const userModel = {
         try {
             await client.query('BEGIN');
 
-            // 🔥 STEP 1: CHECK duplicate email/mobile
-            const checkQuery = `
-      SELECT 1 FROM clients 
-      WHERE email_id = $1 OR mobile_number = $2
-      LIMIT 1;
-    `;
+            // 🔥 DUPLICATE CHECK (optional)
+            if (data.email_id && data.mobile_number) {
+                const checkQuery = `
+        SELECT 1 FROM clients 
+        WHERE email_id = $1 OR mobile_number = $2
+        LIMIT 1;
+      `;
 
-            const checkRes = await client.query(checkQuery, [
-                data.email_id,
-                data.mobile_number
-            ]);
+                const checkRes = await client.query(checkQuery, [
+                    data.email_id,
+                    data.mobile_number
+                ]);
 
-            if (checkRes.rows.length > 0) {
-                throw { code: 'DUPLICATE' };
+                if (checkRes.rows.length > 0) {
+                    throw { code: 'DUPLICATE' };
+                }
             }
 
-            // 🔥 STEP 2: GET LAST client_id
+            // 🔥 GENERATE client_id (FIXED LOGIC)
+            const prefix = `CL0${userId}`;
+
             const lastClientQuery = `
       SELECT client_id 
       FROM clients 
@@ -321,39 +325,31 @@ const userModel = {
             if (lastResult.rows.length > 0) {
                 const lastClientId = lastResult.rows[0].client_id;
 
-                const match = lastClientId.match(/(\d+)$/);
-                if (match) {
-                    nextNumber = parseInt(match[0]) + 1;
+                if (lastClientId.startsWith(prefix)) {
+                    const numberPart = lastClientId.replace(prefix, '');
+                    nextNumber = parseInt(numberPart) + 1 || 1;
                 }
             }
 
-            // 🔥 STEP 3: GENERATE client_id
-            const client_id = `CL0${userId}${nextNumber}`;
+            const client_id = `${prefix}${nextNumber}`;
 
-
-            // 🔥 STEP 4: INSERT (HANDLE OPTIONAL FIELDS)
+            // 🔥 INSERT
             const query = `
       INSERT INTO clients (
-        user_id,
-        client_id,
-        first_name,
-        last_name,
-        mobile_number,
-        email_id,
-        address,
-        pin_code,
-        country,
-        state,
-        district,
-        taluk,
-        division,
-        region,
-        company_name,
-        gst_name,
-        company_address
+        user_id, client_id, first_name, last_name,
+        mobile_number, email_id, address, pin_code,
+        country, state, district,
+        taluk, division, region,
+        company_name, gst, company_address,
+        installation_rep_in_charge, lead_source,
+        date_of_installation,
+        site_contractor_name, site_contractor_phone,
+        architect_name, architect_phone
       )
       VALUES (
-        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17
+        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,
+        $12,$13,$14,$15,$16,$17,$18,$19,$20,
+        $21,$22,$23,$24
       )
       RETURNING *;
     `;
@@ -371,25 +367,32 @@ const userModel = {
                 data.state,
                 data.district,
 
-                // 🔥 OPTIONAL FIELDS SAFE
                 data.taluk || null,
                 data.division || null,
                 data.region || null,
                 data.company_name || null,
-                data.gst_name || null,
-                data.company_address || null
+                data.gst || null,
+                data.company_address || null,
+                data.installation_rep_in_charge || null,
+                data.lead_source || null,
+
+                data.date_of_installation
+                    ? new Date(data.date_of_installation)
+                    : null,
+
+                data.site_contractor_name || null,
+                data.site_contractor_phone || null,
+                data.architect_name || null,
+                data.architect_phone || null
             ];
 
             const result = await client.query(query, values);
 
             await client.query('COMMIT');
-
             return result.rows[0];
 
         } catch (error) {
-            console.log(error);
             await client.query('ROLLBACK');
-
             throw error;
         } finally {
             client.release();
@@ -397,15 +400,11 @@ const userModel = {
     },
 
     updateClient: async (userId, clientId, data) => {
-
         const client = await pool.connect();
 
         try {
             await client.query('BEGIN');
 
-      
-
-            // 🔥 UPDATE QUERY
             const query = `
       UPDATE clients SET
         first_name = $1,
@@ -421,10 +420,17 @@ const userModel = {
         division = $11,
         region = $12,
         company_name = $13,
-        gst_name = $14,
+        gst = $14,
         company_address = $15,
-        updated_at = CURRENT_TIMESTAMP
-      WHERE id = $16
+        installation_rep_in_charge = $16,
+        lead_source = $17,
+        date_of_installation = $18,
+        site_contractor_name = $19,
+        site_contractor_phone = $20,
+        architect_name = $21,
+        architect_phone = $22,
+        updated_at = CURRENT_TIMESTAMP   -- ✅ FIXED comma
+      WHERE id = $23
       RETURNING *;
     `;
 
@@ -442,15 +448,23 @@ const userModel = {
                 data.division || null,
                 data.region || null,
                 data.company_name || null,
-                data.gst_name || null,
+                data.gst || null,
                 data.company_address || null,
+                data.installation_rep_in_charge || null,
+                data.lead_source || null,
+
+                data.date_of_installation ? new Date(data.date_of_installation) : null,
+
+                data.site_contractor_name || null,
+                data.site_contractor_phone || null,
+                data.architect_name || null,
+                data.architect_phone || null,
                 clientId
             ];
 
             const result = await client.query(query, values);
 
             await client.query('COMMIT');
-
             return result.rows[0];
 
         } catch (error) {
@@ -461,8 +475,8 @@ const userModel = {
         }
     },
 
-    deleteClient : async (clientId, userId) => {
-  const query = `
+    deleteClient: async (clientId, userId) => {
+        const query = `
     UPDATE clients
     SET 
       
@@ -472,10 +486,10 @@ const userModel = {
     RETURNING *;
   `;
 
-  const result = await pool.query(query, [userId, clientId]);
+        const result = await pool.query(query, [userId, clientId]);
 
-  return result.rows[0];
-},
+        return result.rows[0];
+    },
 
 
 
