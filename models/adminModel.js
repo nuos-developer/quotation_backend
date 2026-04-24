@@ -271,7 +271,8 @@ const dbModel = {
               c.mobile_number,
               c.email_id,
 
-              c.address,
+              c.address_line_one,
+              c.address_line_two,
               c.pin_code,
               c.country,
               c.state,
