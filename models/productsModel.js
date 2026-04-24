@@ -445,28 +445,45 @@ const productModel = {
     let floorData = null;
     let productsWiseData = null;
 
+    /* ---------- STRUCTURE WISE ---------- */
     if (proposal_type === 'structureWise') {
-      if (!Array.isArray(floor)) {
-        throw new Error('floor must be array for structureWise');
+
+      let normalizedFloor = [];
+
+      if (Array.isArray(floor)) {
+        normalizedFloor = floor;
+      } else if (floor?.floors) {
+        normalizedFloor = floor.floors;
       }
 
-      floorData = JSON.stringify(floor);        // ✅ FIX
+      floorData = JSON.stringify(normalizedFloor);
       productsWiseData = null;
+    }
 
-    } else if (proposal_type === 'productsWise') {
-      if (!Array.isArray(products_wise_items)) {
-        throw new Error('products_wise_items must be array');
+    /* ---------- PRODUCTS WISE ---------- */
+    else if (proposal_type === 'productsWise') {
+
+      let normalizedProducts = [];
+
+      // ✅ supports direct array
+      if (Array.isArray(products_wise_items)) {
+        normalizedProducts = products_wise_items;
+      } 
+      // ✅ supports object format
+      else if (products_wise_items?.productsWiseItems) {
+        normalizedProducts = products_wise_items.productsWiseItems;
       }
 
+      productsWiseData = JSON.stringify(normalizedProducts);
       floorData = null;
-      productsWiseData = JSON.stringify(products_wise_items);  // ✅ FIX
+    }
 
-    } else {
+    else {
       throw new Error('Invalid proposal_type');
     }
 
     /* =====================================================
-       🔥 DEBUG (IMPORTANT)
+       🔥 DEBUG
     ===================================================== */
     console.log('FINAL floorData:', floorData);
     console.log('FINAL productsWiseData:', productsWiseData);
@@ -514,7 +531,7 @@ const productModel = {
       proposal_id || null,
       commissioning_percentage || 0,
       discount_percentage || 0,
-      JSON.stringify(financial_breakdown || {}),   // ✅ FIX
+      JSON.stringify(financial_breakdown || {}),
       floorData,
       grand_total || 0,
       installation_percentage || 0,
@@ -536,7 +553,10 @@ const productModel = {
 
     await client.query('COMMIT');
 
-    return result.rows[0];
+    return {
+      success: true,
+      data: result.rows[0]
+    };
 
   } catch (err) {
     await client.query('ROLLBACK');
