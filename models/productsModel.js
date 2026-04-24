@@ -432,16 +432,17 @@ const productModel = {
     let floorData = null;
     let productsWiseData = null;
 
+  
     if (proposal_type === 'structureWise') {
       floorData = JSON.stringify(floor || []);
       productsWiseData = null;
     } else if (proposal_type === 'productsWise') {
       floorData = null;
-      productsWiseData = JSON.stringify(products_wise_items || {});
+      productsWiseData = JSON.stringify(products_wise_items || []);
     } else {
       throw new Error('Invalid proposal_type');
     }
-
+    
     const query = `
       INSERT INTO proposals(
         client_id,
