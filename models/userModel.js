@@ -337,7 +337,7 @@ const userModel = {
             const query = `
       INSERT INTO clients (
         user_id, client_id, first_name, last_name,
-        mobile_number, email_id, address, pin_code,
+        mobile_number, email_id, address_line_one, address_line_two, pin_code,
         country, state, district,
         taluk, division, region,
         company_name, gst, company_address, salesrepincharge,
@@ -349,7 +349,7 @@ const userModel = {
       VALUES (
         $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,
         $12,$13,$14,$15,$16,$17,$18,$19,$20,
-        $21,$22,$23,$24, 25
+        $21,$22,$23,$24, $25, $26
       )
       RETURNING *;
     `;
@@ -361,11 +361,12 @@ const userModel = {
                 data.last_name,
                 data.mobile_number,
                 data.email_id,
-                data.address,
-                data.pin_code,
-                data.country,
-                data.state,
-                data.district,
+                data.address_line_one,
+                data.address_line_two || null,
+                data.pin_code || null,
+                data.country || null,
+                data.state || null,
+                data.district || null,
 
                 data.taluk || null,
                 data.division || null,
@@ -393,6 +394,8 @@ const userModel = {
             return result.rows[0];
 
         } catch (error) {
+            console.error('error AT line ', error);
+
             await client.query('ROLLBACK');
             throw error;
         } finally {
@@ -412,27 +415,28 @@ const userModel = {
         last_name = $2,
         mobile_number = $3,
         email_id = $4,
-        address = $5,
-        pin_code = $6,
-        country = $7,
-        state = $8,
-        district = $9,
-        taluk = $10,
-        division = $11,
-        region = $12,
-        company_name = $13,
-        gst = $14,
-        company_address = $15,
-        salesrepincharge = $16,
-        installation_rep_in_charge = $17,
-        lead_source = $18,
-        date_of_installation = $19,
-        site_contractor_name = $20,
-        site_contractor_phone = $21,
-        architect_name = $22,
-        architect_phone = $23,
+        address_line_one = $5,
+        address_line_two = $6,
+        pin_code = $7,
+        country = $8,
+        state = $9,
+        district = $10,
+        taluk = $11,
+        division = $12,
+        region = $13,
+        company_name = $14,
+        gst = $15,
+        company_address = $16,
+        salesrepincharge = $17,
+        installation_rep_in_charge = $18,
+        lead_source = $19,
+        date_of_installation = $20,
+        site_contractor_name = $21,
+        site_contractor_phone = $22,
+        architect_name = $23,
+        architect_phone = $24,
         updated_at = CURRENT_TIMESTAMP   -- ✅ FIXED comma
-      WHERE id = $24
+      WHERE id = $25
       RETURNING *;
     `;
 
@@ -441,11 +445,12 @@ const userModel = {
                 data.last_name,
                 data.mobile_number,
                 data.email_id,
-                data.address,
-                data.pin_code,
-                data.country,
-                data.state,
-                data.district,
+                data.address_line_one,
+                data.address_line_two || null,
+                data.pin_code || null,
+                data.country || null,
+                data.state || null,
+                data.district || null,
                 data.taluk || null,
                 data.division || null,
                 data.region || null,
@@ -471,8 +476,9 @@ const userModel = {
             return result.rows[0];
 
         } catch (error) {
+            console.error('ERROR at Line', error)
             await client.query('ROLLBACK');
-            throw error;
+            // throw error;
         } finally {
             client.release();
         }
