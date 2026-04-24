@@ -434,11 +434,11 @@ const productModel = {
 
   
     if (proposal_type === 'structureWise') {
-      floorData = JSON.stringify(floor || []);
+      floorData = floor || [];
       productsWiseData = null;
     } else if (proposal_type === 'productsWise') {
       floorData = null;
-      productsWiseData = JSON.stringify(products_wise_items || []);
+      productsWiseData = products_wise_items || [];
     } else {
       throw new Error('Invalid proposal_type');
     }
