@@ -422,6 +422,12 @@ const productModel = {
       use_same_recipient
     } = reqBody;
 
+    console.log(':>>>>>>>>',reqBody);
+    console.log(':>>>>>>>>',proposal_type);
+    console.log(':>>>>>>>>',products_wise_items);
+    console.log(':>>>>>>>>',floor);
+    
+
     // 🔥 CONDITIONAL DATA HANDLING
     let floorData = null;
     let productsWiseData = null;
