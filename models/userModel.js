@@ -378,9 +378,7 @@ const userModel = {
                 data.installation_rep_in_charge || null,
                 data.lead_source || null,
 
-                data.date_of_installation
-                    ? new Date(data.date_of_installation)
-                    : null,
+                data.date_of_installation || null,
 
                 data.site_contractor_name || null,
                 data.site_contractor_phone || null,
@@ -461,7 +459,7 @@ const userModel = {
                 data.installation_rep_in_charge || null,
                 data.lead_source || null,
 
-                data.date_of_installation ? new Date(data.date_of_installation) : null,
+                data.date_of_installation || null,
 
                 data.site_contractor_name || null,
                 data.site_contractor_phone || null,
