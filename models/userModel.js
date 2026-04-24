@@ -340,7 +340,7 @@ const userModel = {
         mobile_number, email_id, address, pin_code,
         country, state, district,
         taluk, division, region,
-        company_name, gst, company_address,
+        company_name, gst, company_address, salesrepincharge,
         installation_rep_in_charge, lead_source,
         date_of_installation,
         site_contractor_name, site_contractor_phone,
@@ -349,7 +349,7 @@ const userModel = {
       VALUES (
         $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,
         $12,$13,$14,$15,$16,$17,$18,$19,$20,
-        $21,$22,$23,$24
+        $21,$22,$23,$24, 25
       )
       RETURNING *;
     `;
@@ -373,6 +373,7 @@ const userModel = {
                 data.company_name || null,
                 data.gst || null,
                 data.company_address || null,
+                data.salesrepincharge || null,
                 data.installation_rep_in_charge || null,
                 data.lead_source || null,
 
@@ -422,15 +423,16 @@ const userModel = {
         company_name = $13,
         gst = $14,
         company_address = $15,
-        installation_rep_in_charge = $16,
-        lead_source = $17,
-        date_of_installation = $18,
-        site_contractor_name = $19,
-        site_contractor_phone = $20,
-        architect_name = $21,
-        architect_phone = $22,
+        salesrepincharge = $16,
+        installation_rep_in_charge = $17,
+        lead_source = $18,
+        date_of_installation = $19,
+        site_contractor_name = $20,
+        site_contractor_phone = $21,
+        architect_name = $22,
+        architect_phone = $23,
         updated_at = CURRENT_TIMESTAMP   -- ✅ FIXED comma
-      WHERE id = $23
+      WHERE id = $24
       RETURNING *;
     `;
 
@@ -450,6 +452,7 @@ const userModel = {
                 data.company_name || null,
                 data.gst || null,
                 data.company_address || null,
+                data.salesrepincharge || null,
                 data.installation_rep_in_charge || null,
                 data.lead_source || null,
 

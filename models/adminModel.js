@@ -283,6 +283,7 @@ const dbModel = {
               c.company_name,
               c.company_address,
               c.gst,
+              c.salesrepincharge,
               c.installation_rep_in_charge,
               c.lead_source,
               c.date_of_installation,
