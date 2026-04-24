@@ -252,7 +252,7 @@ const dbModel = {
       throw error;
     }
   },
-  
+
   getClientData: async () => {
     try {
       // const { } = reqBody
@@ -264,6 +264,7 @@ const dbModel = {
               c.user_id,
               r.role_name,
               u.role_id,
+              u.user_name,
 
               c.first_name,
               c.last_name,
