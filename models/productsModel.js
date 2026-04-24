@@ -403,8 +403,12 @@ const productModel = {
         }
     },
 
-  createProposal: async (reqBody, userId) => {
+ createProposal: async (reqBody, userId) => {
+  const client = await pool.connect();
+
   try {
+    await client.query('BEGIN');
+
     const {
       client_id,
       proposal_id,
@@ -422,27 +426,54 @@ const productModel = {
       use_same_recipient
     } = reqBody;
 
-    console.log(':>>>>>>>>',reqBody);
-    console.log(':>>>>>>>>',proposal_type);
-    console.log(':>>>>>>>>',products_wise_items);
-    console.log(':>>>>>>>>',floor);
-    
+    console.log('REQ BODY:', reqBody);
 
-    // 🔥 CONDITIONAL DATA HANDLING
+    /* =====================================================
+       🔥 VALIDATION
+    ===================================================== */
+    if (!proposal_type) {
+      throw new Error('proposal_type is required');
+    }
+
+    if (!client_id) {
+      throw new Error('client_id is required');
+    }
+
+    /* =====================================================
+       🔥 PREPARE JSON DATA (MAIN FIX)
+    ===================================================== */
     let floorData = null;
     let productsWiseData = null;
 
-  
     if (proposal_type === 'structureWise') {
-      floorData = floor || [];
+      if (!Array.isArray(floor)) {
+        throw new Error('floor must be array for structureWise');
+      }
+
+      floorData = JSON.stringify(floor);        // ✅ FIX
       productsWiseData = null;
+
     } else if (proposal_type === 'productsWise') {
+      if (!Array.isArray(products_wise_items)) {
+        throw new Error('products_wise_items must be array');
+      }
+
       floorData = null;
-      productsWiseData = products_wise_items || [];
+      productsWiseData = JSON.stringify(products_wise_items);  // ✅ FIX
+
     } else {
       throw new Error('Invalid proposal_type');
     }
-    
+
+    /* =====================================================
+       🔥 DEBUG (IMPORTANT)
+    ===================================================== */
+    console.log('FINAL floorData:', floorData);
+    console.log('FINAL productsWiseData:', productsWiseData);
+
+    /* =====================================================
+       🔥 QUERY
+    ===================================================== */
     const query = `
       INSERT INTO proposals(
         client_id,
@@ -480,13 +511,13 @@ const productModel = {
 
     const values = [
       client_id,
-      proposal_id,
-      commissioning_percentage,
-      discount_percentage,
-      JSON.stringify(financial_breakdown || {}),
+      proposal_id || null,
+      commissioning_percentage || 0,
+      discount_percentage || 0,
+      JSON.stringify(financial_breakdown || {}),   // ✅ FIX
       floorData,
-      grand_total,
-      installation_percentage,
+      grand_total || 0,
+      installation_percentage || 0,
       productsWiseData,
       proposal_type,
       recipient_name || null,
@@ -495,17 +526,32 @@ const productModel = {
       use_same_recipient ?? false,
       userId
     ];
-console.log('11111111111111',values);
 
-    const result = await pool.query(query, values);
+    console.log('FINAL VALUES:', values);
+
+    /* =====================================================
+       🔥 EXECUTE
+    ===================================================== */
+    const result = await client.query(query, values);
+
+    await client.query('COMMIT');
+
     return result.rows[0];
 
   } catch (err) {
+    await client.query('ROLLBACK');
+
     console.error('Error inserting proposal:', err);
-    throw err;
+
+    return {
+      success: false,
+      message: 'Failed to insert proposal',
+      error: err.message
+    };
+  } finally {
+    client.release();
   }
 },
-
     getProposalData: async (userId) => {
         try {
 
