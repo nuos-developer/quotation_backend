@@ -484,6 +484,7 @@ const productModel = {
     p.id,
     p.proposal_id,
     floors.floor,
+
     p.commissioning_percentage,
     p.discount_percentage,
     p.financial_breakdown,
@@ -491,8 +492,11 @@ const productModel = {
     p.installation_percentage,
     p.products_wise_items,
     p.client_id,
+    p.created_at ,
+    p.updated_at,
 
-       jsonb_build_object(
+    /* 🔹 CLIENT DETAILS */
+    jsonb_build_object(
         'client_id', c.client_id,
         'first_name', c.first_name,
         'last_name', c.last_name,
@@ -507,19 +511,24 @@ const productModel = {
         'company_name', c.company_name,
         'gst', c.gst,
         'company_address', c.company_address
-    ) AS user_details,
+    ) AS client_details,
 
-        jsonb_build_object(
+    /* 🔹 CREATED BY USER + ROLE */
+    jsonb_build_object(
         'id', u.id,
         'user_name', u.user_name,
         'email', u.email_id,
         'mobile', u.mobile_number,
-        'role_id', u.role_id
-    ) AS created_by_user
-    
+
+        'role', jsonb_build_object(
+            'role_id', r.id,
+            'role_name', r.role_name
+        )
+    ) AS created_by
+
 FROM proposals p
 
-/* ---------- FLOOR JSON (SAFE ARRAY HANDLING) ---------- */
+/* 🔥 FLOOR JSON (same as your existing logic) */
 LEFT JOIN LATERAL (
     SELECT jsonb_agg(
         jsonb_build_object(
@@ -552,6 +561,7 @@ LEFT JOIN LATERAL (
                                                                 'price', pr.price,
                                                                 'modSize', pr.mod_size,
                                                                 'wiringTypeId', pr.wiring_type_id,
+                                                                 'wire_name', pr.wiring_type,
                                                                 'zigbeeType', pr.zigbee_type,
                                                                 'imagePath', pi.image_url
                                                             )
@@ -613,11 +623,15 @@ LEFT JOIN LATERAL (
     ) fl
 ) floors ON TRUE
 
+/* 🔥 CORRECT JOINS */
 LEFT JOIN clients c 
   ON c.id = p.client_id  
 
 LEFT JOIN users u 
   ON u.id = p.created_by    
+
+LEFT JOIN roles r
+  ON r.id = u.role_id   -- ✅ IMPORTANT
 
 WHERE p.deleted_at IS NULL;
 ;
@@ -640,6 +654,7 @@ WHERE p.deleted_at IS NULL;
             throw error;
         }
     },
+
     getProposalDataById: async (proposalId, userId) => {
         try {
 
@@ -648,6 +663,7 @@ WHERE p.deleted_at IS NULL;
                         p.id,
                         p.proposal_id,
                         floors.floor,
+                                
                         p.commissioning_percentage,
                         p.discount_percentage,
                         p.financial_breakdown,
@@ -655,31 +671,43 @@ WHERE p.deleted_at IS NULL;
                         p.installation_percentage,
                         p.products_wise_items,
                         p.client_id,
+                        p.created_at ,
+                        p.updated_at,
                                 
+                        /* 🔹 CLIENT DETAILS */
+                        jsonb_build_object(
+                            'client_id', c.client_id,
+                            'first_name', c.first_name,
+                            'last_name', c.last_name,
+                            'email', c.email_id,
+                            'mobile', c.mobile_number,
+                            'address_line_one', c.address_line_one,
+                            'address_line_two', c.address_line_two,
+                            'pin_code', c.pin_code,
+                            'country', c.country,
+                            'state', c.state,
+                            'district', c.district,
+                            'company_name', c.company_name,
+                            'gst', c.gst,
+                            'company_address', c.company_address
+                        ) AS client_details,
+                                
+                        /* 🔹 CREATED BY USER + ROLE */
                         jsonb_build_object(
                             'id', u.id,
-                            'first_name', u.first_name,
-                            'last_name', u.last_name,
-                            'address', ud.address,
-                            'pin_code', ud.pin_code,
-                            'country', ud.country,
-                            'state', ud.state,
-                            'district', ud.district,
-                            'taluk', ud.taluk,
-                            'division', ud.division,
-                            'region', ud.region,
-                            'company_name', ud.company_name,
-                            'gst', ud.gst,
-                            'company_address', ud.company_address,
-                            'userName', u.user_name,
+                            'user_name', u.user_name,
                             'email', u.email_id,
-                            'phone', u.mobile_number,
-                            'role', u.role_name
-                        ) AS user_details
+                            'mobile', u.mobile_number,
                                 
-                FROM proposals p
+                            'role', jsonb_build_object(
+                                'role_id', r.id,
+                                'role_name', r.role_name
+                            )
+                        ) AS created_by
                                 
-                    /* ---------- FLOOR JSON (SAFE ARRAY HANDLING) ---------- */
+                    FROM proposals p
+                                
+                    /* 🔥 FLOOR JSON (same as your existing logic) */
                     LEFT JOIN LATERAL (
                         SELECT jsonb_agg(
                             jsonb_build_object(
@@ -712,6 +740,7 @@ WHERE p.deleted_at IS NULL;
                                                                                     'price', pr.price,
                                                                                     'modSize', pr.mod_size,
                                                                                     'wiringTypeId', pr.wiring_type_id,
+                                                                                    'wire_name', pr.wiring_type,
                                                                                     'zigbeeType', pr.zigbee_type,
                                                                                     'imagePath', pi.image_url
                                                                                 )
@@ -773,14 +802,17 @@ WHERE p.deleted_at IS NULL;
                         ) fl
                     ) floors ON TRUE
                                 
-                    LEFT JOIN users u
-                      ON u.id = p.client_id
+                    /* 🔥 CORRECT JOINS */
+                    LEFT JOIN clients c 
+                      ON c.id = p.client_id  
                                 
-                    LEFT JOIN users_details ud
-                      ON ud.user_id = u.id
+                    LEFT JOIN users u 
+                      ON u.id = p.created_by    
                                 
-                    WHERE p.id = $1
-                      AND p.deleted_at IS NULL;
+                    LEFT JOIN roles r
+                      ON r.id = u.role_id   -- ✅ IMPORTANT
+                                
+                    WHERE p.id = $1 and p.deleted_at IS NULL;
                      ;
                         ;`, [proposalId]);
 
