@@ -118,7 +118,7 @@ const productModel = {
                      p.created_at,
                      ARRAY_AGG(t.image_url) AS image_urls
                  FROM products p
-                 INNER JOIN wiring_type wt  
+                 INNER JOIN wiring_types wt  
                      ON p.wiring_type_id = wt.id
                  LEFT JOIN product_images t 
                      ON t.product_id = p.id 
@@ -172,7 +172,7 @@ const productModel = {
                      p.created_at,
                      ARRAY_AGG(t.image_url) AS image_urls
                  FROM products p
-                 INNER JOIN wiring_type wt  
+                 INNER JOIN wiring_types wt  
                      ON p.wiring_type_id = wt.id
                  LEFT JOIN product_images t 
                      ON t.product_id = p.id 
