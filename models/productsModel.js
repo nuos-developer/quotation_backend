@@ -494,6 +494,7 @@ const productModel = {
       use_same_recipient ?? false,
       userId
     ];
+console.log('11111111111111',values);
 
     const result = await pool.query(query, values);
     return result.rows[0];
