@@ -504,9 +504,9 @@ const productModel = {
         'state', c.state,
         'district', c.district,
         'company_name', c.company_name,
-        'gst_name', c.gst_name,
+        'gst', c.gst,
         'company_address', c.company_address
-    ) AS client_details,
+    ) AS user_details,
 
         jsonb_build_object(
         'id', u.id,
@@ -668,7 +668,7 @@ WHERE p.deleted_at IS NULL;
                             'division', ud.division,
                             'region', ud.region,
                             'company_name', ud.company_name,
-                            'gst_name', ud.gst_name,
+                            'gst', ud.gst,
                             'company_address', ud.company_address,
                             'userName', u.user_name,
                             'email', u.email_id,

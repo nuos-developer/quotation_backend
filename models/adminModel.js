@@ -252,39 +252,47 @@ const dbModel = {
       throw error;
     }
   },
+  
   getClientData: async () => {
     try {
       // const { } = reqBody
       const query =
         `
-SELECT 
-    c.id,
-    c.client_id,
-    c.user_id,
-    r.role_name,
-    u.role_id,
+          SELECT 
+              c.id,
+              c.client_id,
+              c.user_id,
+              r.role_name,
+              u.role_id,
 
-    c.first_name,
-    c.last_name,
-    c.mobile_number,
-    c.email_id,
+              c.first_name,
+              c.last_name,
+              c.mobile_number,
+              c.email_id,
 
-    c.address,
-    c.pin_code,
-    c.country,
-    c.state,
-    c.district,
-    c.taluk,
-    c.division,
-    c.region,
+              c.address,
+              c.pin_code,
+              c.country,
+              c.state,
+              c.district,
+              c.taluk,
+              c.division,
+              c.region,
 
-    c.company_name,
-    c.company_address,
-    c.gst_name
+              c.company_name,
+              c.company_address,
+              c.gst,
+              c.installation_rep_in_charge,
+              c.lead_source,
+              c.date_of_installation,
+              c.site_contractor_name,
+              c.site_contractor_phone,
+              c.architect_name,
+              c.architect_phone
 
-FROM clients c
-INNER JOIN users u ON c.user_id = u.id
-INNER JOIN roles r ON r.id = u.role_id WHERE c.deleted_by is NULL ORDER BY u.id DESC`;
+          FROM clients c
+          INNER JOIN users u ON c.user_id = u.id
+          INNER JOIN roles r ON r.id = u.role_id WHERE c.deleted_by is NULL ORDER BY u.id DESC`;
 
       const result = await pool.query(query);
 
