@@ -33,12 +33,14 @@ router.delete('/product/activeProduct/:id', authMiddleware(), productController.
 
 router.post('/product/insertProposal', authMiddleware(), productController.createProposal)
 
+router.put('/product/proposal/:id', authMiddleware(), productController.updateProposal);
+
 router.get('/product/wire_type', authMiddleware(), productController.getWireType)
 
 router.get('/product/getproposal', authMiddleware(), productController.getProposalData)
 
 router.get('/product/getproposalById/:id', authMiddleware(), productController.getProposalDataById)
 
-router.delete('product/delete_proposal/:id', authMiddleware(), productController.deleteProposalById)
+router.delete('/product/delete_proposal/:id', authMiddleware(), productController.deleteProposalById)
 
 module.exports = router;

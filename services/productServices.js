@@ -34,7 +34,7 @@ const productService = {
 
             // Step 2: Insert images using product.id
             // if (reqBody.image_urls && reqBody.image_urls.length > 0) {
-                await productModel.addProductImages(reqBody.product_id, reqBody.image_urls);
+            await productModel.addProductImages(reqBody.product_id, reqBody.image_urls);
             // }
 
             return {
@@ -162,10 +162,10 @@ const productService = {
             return resp
 
         } catch (error) {
-            console.error('Error updating Product:', error);
+            console.error('Error delete proposal:', error);
             return {
                 success: false,
-                message: 'Failed to update Product',
+                message: 'Failed to delete proposal',
                 error: error.message,
             };
         }
@@ -173,7 +173,6 @@ const productService = {
 
     createProposal: async (reqBody, userId) => {
         try {
-            console.log('product :>>>>>>>>>>>>', reqBody);
 
             // const isCheckProduct = await productModel.checkProductById(reqBody.products_wise_items.productIds)
             // console.log(':>>>>>>>>>>>>', isCheckProduct.success)
@@ -188,7 +187,7 @@ const productService = {
                 message: 'proposal Insertes successfully',
                 data: resp.data || resp,
             };
-            
+
         } catch (error) {
             console.error('Error inseting proposal:', error);
             return {
@@ -199,12 +198,36 @@ const productService = {
         }
     },
 
+    updateProposal: async (proposalId, body, userId) => {
+        try {
+            const result = await productModel.updateProposal(proposalId, body, userId);
+
+            if (!result) {
+                return {
+                    success: false,
+                    message: 'Proposal not found'
+                };
+            }
+
+            return {
+                success: true,
+                data: result
+            };
+
+        } catch (error) {
+            return {
+                success: false,
+                message: error.message
+            };
+        }
+    },
+
     getProposalData: async (userId) => {
         try {
 
             const resp = await productModel.getProposalData(userId)
-            console.log('resp :>>>>>>>>>',resp );
-            
+            console.log('resp :>>>>>>>>>', resp);
+
             return resp;
         } catch (error) {
             console.error('Error inseting proposal:', error);
@@ -219,8 +242,8 @@ const productService = {
         try {
 
             const resp = await productModel.getProposalDataById(proposalId, userId)
-            console.log('resp :>>>>>>>>',resp);
-            
+            console.log('resp :>>>>>>>>', resp);
+
             return resp;
         } catch (error) {
             console.error('Error fatch proposal:', error);

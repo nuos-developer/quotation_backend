@@ -8,17 +8,17 @@ const productController = {
     addProduct: async (req, res) => {
         try {
             const reqBody = req.body;
-            
+
             const userId = req.user.id;
-            
+
             // Convert uploaded files into accessible URLs
             const imageUrls = req.files.map(file =>
                 `${req.protocol}://${req.get("host")}/uploads/products/${file.filename}`
             );
             console.log('image url :.1111111', imageUrls);
-            
+
             reqBody.image_urls = imageUrls;
-            
+
             console.log(reqBody, userId);
             const resp = await productService.addProduct(reqBody, userId);
 
@@ -162,7 +162,6 @@ const productController = {
             const reqBody = req.body
             const userId = req.user.id
 
-            console.log(':>>>>>>>>>>>>>>>', userId);
             const resp = await productService.createProposal(reqBody, userId)
 
             res.status(HttpStatus.CREATED).json({
@@ -172,6 +171,29 @@ const productController = {
         } catch (error) {
             console.error(error);
             res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: HttpMessage.INTERNAL_SERVER_ERROR });
+        }
+    },
+
+    updateProposal: async (req, res) => {
+        try {
+            const proposalId = req.params.id;
+            const userId = req.user.id;
+            const body = req.body;
+
+            const result = await productService.updateProposal(proposalId, body, userId);
+
+            if (!result.success) {
+                return res.status(400).json({ message: result.message });
+            }
+
+            return res.status(200).json({
+                message: 'Proposal updated successfully',
+                data: result.data
+            });
+
+        } catch (error) {
+            console.error('Update Proposal Error:', error);
+            return res.status(500).json({ message: 'Internal server error' });
         }
     },
 
@@ -208,7 +230,6 @@ const productController = {
         try {
             const userId = req.user.id;
             const proposalId = req.params.id
-            console.log('proposal details:>>>>>>>>>>>>>>>', reqBody, proposalId);
 
             const resp = await productService.deleteProposalById(proposalId, userId)
 
