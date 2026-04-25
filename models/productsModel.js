@@ -107,34 +107,41 @@ const productModel = {
     getProduct: async () => {
         try {
             const result = await pool.query(
-                `SELECT p.id,
-                     p.product_name,
-                     p.category,
-                     p.mod_size,
-                     p.price,
-                     wt.id AS wiring_type_id,
-                    -- wt.wiring_type_id ,
-                     wt.wiring_type,
-                     p.zigbee_type,
-                     p.created_at,
-                     ARRAY_AGG(t.image_url) AS image_urls
-                 FROM products p
-                 INNER JOIN wiring_types wt  
-                     ON p.wiring_type_id = wt.id
-                 LEFT JOIN product_images t 
-                     ON t.product_id = p.id 
-                     AND t.is_active = true
-                 WHERE p.is_active  = true
-                 GROUP BY 
-                     p.id,
-                     p.product_name,
-                     p.category,
-                     p.mod_size,
-                     p.price,
-                     wt.id,
-                     wt.wiring_type,
-                     p.zigbee_type,
-                     p.created_at; `
+                `SELECT 
+                        p.id,
+                        p.product_name,
+                        p.category,
+                        p.mod_size,
+                        p.price,
+                        wt.id AS wiring_type_id,
+                        wt.wiring_type,
+                        p.zigbee_type,
+                        p.created_at,
+                        ARRAY_AGG(t.image_url) FILTER (WHERE t.image_url IS NOT NULL) AS image_urls
+                                
+                    FROM products p
+                                
+                    INNER JOIN wiring_types wt  
+                        ON p.wiring_type_id = wt.id
+                                
+                    LEFT JOIN product_images t 
+                        ON t.product_id = p.id 
+                        AND t.is_active = true
+                                
+                    WHERE p.is_active = true   -- ✅ FIXED
+                                
+                    GROUP BY 
+                        p.id,
+                        p.product_name,
+                        p.category,
+                        p.mod_size,
+                        p.price,
+                        wt.id,
+                        wt.wiring_type,
+                        p.zigbee_type,
+                        p.created_at
+                                
+                    ORDER BY p.id DESC;   -- ✅ MOVED HERE`
             );
 
             if (!result.rows.length) {
