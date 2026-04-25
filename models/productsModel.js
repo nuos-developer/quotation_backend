@@ -9,6 +9,7 @@ const productModel = {
                 category,
                 mod_size,
                 price,
+                wiring_type_id,
                 wiring_type,
                 zigbee_type,
             } = reqBody;
@@ -23,8 +24,8 @@ const productModel = {
 
             const query = `
       INSERT INTO products 
-      (user_id, product_name, category, mod_size, price, wiring_type, zigbee_type, created_by)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+      (user_id, product_name, category, mod_size, price, wiring_type_id, wiring_type, zigbee_type, created_by)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8, $9)
       RETURNING id;
     `;
 
@@ -34,7 +35,7 @@ const productModel = {
                 category,
                 mod_size,
                 price,
-                // wiring_type_id || null, // ✅ integer now
+                wiring_type_id || null, // ✅ integer now
                 wiring_type,
                 zigbee_type,
                 userId
