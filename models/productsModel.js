@@ -620,11 +620,36 @@ const productModel = {
 
                         /* ================= CLIENT ================= */
                         jsonb_build_object(
+                            'id', c.id,
                             'client_id', c.client_id,
                             'first_name', c.first_name,
                             'last_name', c.last_name,
                             'email', c.email_id,
-                            'mobile', c.mobile_number
+                            'mobile', c.mobile_number,
+                            'address_line_one', c.address_line_one,
+                            'pin_code', c.pin_code,
+                            'country', c.country,
+                            'state', c.state,
+                            'district', c.district,
+                            'taluk', c.taluk,
+                            'division', c.division,
+                            'region', c.region,
+                            'company_name', c.company_name,
+                            'gst', c.gst,
+                            'company_address', c.company_address,
+                            'created_at', c.created_at,
+                            'updated_at', c.updated_at,
+                            'deleted_by', c.deleted_by,
+                            'deleted_at', c.deleted_at,
+                            'salesrepincharge', c.salesrepincharge,
+                            'installation_rep_in_charge', c.installation_rep_in_charge,
+                            'lead_source', c.lead_source,
+                            'date_of_installation', c.date_of_installation,
+                            'site_contractor_name', c.site_contractor_name,
+                            'site_contractor_phone', c.site_contractor_phone,
+                            'architect_name', c.architect_name,
+                            'architect_phone', c.architect_phone,
+                            'address_line_two', c.address_line_two
                         ) AS client_details,
 
                         /* ================= USER ================= */
@@ -835,11 +860,36 @@ const productModel = {
 
                         /* ================= CLIENT ================= */
                         jsonb_build_object(
+                            'id', c.id,
                             'client_id', c.client_id,
                             'first_name', c.first_name,
                             'last_name', c.last_name,
                             'email', c.email_id,
-                            'mobile', c.mobile_number
+                            'mobile', c.mobile_number,
+                            'address_line_one', c.address_line_one,
+                            'pin_code', c.pin_code,
+                            'country', c.country,
+                            'state', c.state,
+                            'district', c.district,
+                            'taluk', c.taluk,
+                            'division', c.division,
+                            'region', c.region,
+                            'company_name', c.company_name,
+                            'gst', c.gst,
+                            'company_address', c.company_address,
+                            'created_at', c.created_at,
+                            'updated_at', c.updated_at,
+                            'deleted_by', c.deleted_by,
+                            'deleted_at', c.deleted_at,
+                            'salesrepincharge', c.salesrepincharge,
+                            'installation_rep_in_charge', c.installation_rep_in_charge,
+                            'lead_source', c.lead_source,
+                            'date_of_installation', c.date_of_installation,
+                            'site_contractor_name', c.site_contractor_name,
+                            'site_contractor_phone', c.site_contractor_phone,
+                            'architect_name', c.architect_name,
+                            'architect_phone', c.architect_phone,
+                            'address_line_two', c.address_line_two
                         ) AS client_details,
 
                         /* ================= USER ================= */
