@@ -446,27 +446,37 @@ const dbModel = {
   getDashboardCounts: async () => {
 
     const roleWiseQuery = `
-               SELECT
-                r.role_name, r.id,
-                COUNT(u.id) AS total_users,
-                COUNT(CASE WHEN u.is_admin_approve = 'PENDING' THEN 1 END) AS pending_users,
-                COUNT(CASE WHEN u.is_admin_approve = 'APPROVED' THEN 1 END) AS approved_users
-              FROM roles r
-              LEFT JOIN users u
-                ON u.role_id = r.id
-               AND u.deleted_by IS NULL
-              WHERE r.role_name <> 'Admin'
-              GROUP BY r.id, r.role_name
-              ORDER BY r.id ASC;
-              `;
+    SELECT
+      r.role_name, r.id,
+      COUNT(u.id) AS total_users,
+      COUNT(CASE WHEN u.is_admin_approve = 'PENDING' THEN 1 END) AS pending_users,
+      COUNT(CASE WHEN u.is_admin_approve = 'APPROVED' THEN 1 END) AS approved_users
+    FROM roles r
+    LEFT JOIN users u
+      ON u.role_id = r.id
+     AND u.deleted_by IS NULL
+    WHERE r.role_name <> 'Admin'
+    GROUP BY r.id, r.role_name
+    ORDER BY r.id ASC;
+  `;
 
     const productProposalQuery = `
-      SELECT
-        (SELECT COUNT(*) FROM products WHERE deleted_by IS NULL) AS total_products,
-        (SELECT COUNT(*) FROM products WHERE is_active = true  AND deleted_by IS NULL) AS active_products,
-        (SELECT COUNT(*) FROM products WHERE is_active = false AND deleted_by IS NULL) AS inactive_products,
-        (SELECT COUNT(*) FROM proposals WHERE deleted_by IS NULL) AS total_proposals;
-    `;
+    SELECT
+      (SELECT COUNT(*) FROM products WHERE deleted_by IS NULL) AS total_products,
+
+      (SELECT COUNT(*) FROM products 
+       WHERE is_active = true AND deleted_by IS NULL) AS active_products,
+
+      (SELECT COUNT(*) FROM products 
+       WHERE is_active = false AND deleted_by IS NULL) AS inactive_products,
+
+      (SELECT COUNT(*) FROM proposals 
+       WHERE deleted_by IS NULL) AS total_proposals,
+
+      -- ✅ CLIENT COUNT
+      (SELECT COUNT(*) FROM clients 
+       WHERE deleted_by IS NULL) AS total_clients;
+  `;
 
     const [roleResult, productResult] = await Promise.all([
       pool.query(roleWiseQuery),
@@ -478,7 +488,6 @@ const dbModel = {
       summary: productResult.rows[0]
     };
   },
-
 
 
   updateUserPermission: async (data, userId) => {
