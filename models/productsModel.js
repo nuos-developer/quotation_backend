@@ -625,6 +625,10 @@ const productModel = {
                         p.financial_breakdown,
                         p.grand_total,
                         p.installation_percentage,
+                         p.recipient_name,
+						p.ship_to_address,
+						p.use_same_address,
+						p.use_same_recipient,
 
                         /* ================= CLIENT ================= */
                         jsonb_build_object(
@@ -865,6 +869,10 @@ const productModel = {
                         p.financial_breakdown,
                         p.grand_total,
                         p.installation_percentage,
+                         p.recipient_name,
+						p.ship_to_address,
+						p.use_same_address,
+						p.use_same_recipient,
 
                         /* ================= CLIENT ================= */
                         jsonb_build_object(
