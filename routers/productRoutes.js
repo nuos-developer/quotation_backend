@@ -44,3 +44,4 @@ router.get('/product/getproposalById/:id', authMiddleware(), productController.g
 router.delete('/product/delete_proposal/:id', authMiddleware(), productController.deleteProposalById)
 
 module.exports = router;
+
