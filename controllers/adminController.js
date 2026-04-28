@@ -8,14 +8,24 @@ const generateToken = (id) =>
 
 const adminController = {
     register: async (req, res) => {
-        try {
-            const resp = await adminService.registerAdmin(req.body);
-            res.status(HttpStatus.CREATED).json({ message: `${req.body.role} ${HttpMessage.CREATED}`, resp });
-        } catch (err) {
-            console.error(err);
-            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: HttpMessage.INTERNAL_SERVER_ERROR });
-        }
-    },
+  try {
+    const resp = await adminService.registerAdmin(req.body);
+
+    if (!resp.success) {
+      return res.status(400).json(resp);
+    }
+
+    res.status(201).json(resp);
+
+  } catch (err) {
+    console.error(err);
+
+    res.status(500).json({
+      success: false,
+      message: 'Internal Server Error'
+    });
+  }
+},
 
     verifyOtp: async (req, res) => {
         try {

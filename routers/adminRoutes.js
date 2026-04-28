@@ -7,7 +7,7 @@ const commController = require('../common/commonControllers');
 const authMiddleware = require('../middleware/authMiddleware');
 
 // Public routes
-router.post('/register', validateRequest(adminRegisterSchema), adminController.register);
+router.post('/register', adminController.register);
 
 router.post('/verify_email', commController.verifyEmail);
 

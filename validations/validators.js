@@ -15,7 +15,7 @@ exports.adminRegisterSchema = Joi.object({
   pin_code: Joi.string().required(),
   country: Joi.string().required(),
   state: Joi.string().required(),
-  district: Joi.string().required(),
+  district: Joi.string().optional(),
   taluk: Joi.string().optional(),
   division: Joi.string().optional(),
   region: Joi.string().optional(),

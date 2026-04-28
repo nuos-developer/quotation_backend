@@ -23,117 +23,93 @@ const dbModel = {
       throw error;
     }
   },
-  register: async (reqBody, salt, hashedPassword) => {
+ register: async (reqBody, salt, hashedPassword) => {
 
-    const {
+  const {
+    first_name,
+    last_name,
+    user_name,
+    mobile_number,
+    email_id,
+    role_name,
+    address,
+    pin_code,
+    country,
+    state,
+    district,
+    taluk,
+    division,
+    region,
+    company_name,
+    gst_name,
+    company_address
+  } = reqBody;
+
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    const userQuery = `
+      INSERT INTO users (
+        first_name, last_name, user_name, mobile_number,
+        email_id, password, salt_password, role_name
+      )
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+      RETURNING id, first_name, email_id
+    `;
+
+    const userValues = [
       first_name,
-      last_name,
-      user_name,
-      mobile_number,
+      last_name || null,
+      user_name || null,
+      mobile_number || null,
       email_id,
-      role_name,
+      hashedPassword,
+      salt,
+      role_name || null
+    ];
 
-      // details table fields
-      address,
-      pin_code,
-      country,
-      state,
-      district,
-      taluk,
-      division,
-      region,
-      company_name,
-      gst_name,
-      company_address
-    } = reqBody;
+    const userResult = await client.query(userQuery, userValues);
+    const user = userResult.rows[0];   // ✅ IMPORTANT
 
-    const client = await pool.connect();
+    const n = (v) => v || null;
 
-    try {
-      // 🔐 START TRANSACTION
-      await client.query('BEGIN');
+    const detailsQuery = `
+      INSERT INTO users_details (
+        user_id, address, pin_code, country, state,
+        district, taluk, division, region,
+        company_name, gst_name, company_address
+      )
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+    `;
 
-      /* ---------- INSERT INTO USERS ---------- */
-      const userQuery = `
-        INSERT INTO users (
-          first_name,
-          last_name,
-          user_name,
-          mobile_number,
-          email_id,
-          password,
-          salt_password,
-          role_name
-        )
-        VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
-        RETURNING id, first_name, email_id
-      `;
+    await client.query(detailsQuery, [
+      user.id,
+      n(address),
+      n(pin_code),
+      n(country),
+      n(state),
+      n(district),
+      n(taluk),
+      n(division),
+      n(region),
+      n(company_name),
+      n(gst_name),
+      n(company_address)
+    ]);
 
-      const userValues = [
-        first_name,
-        last_name,
-        user_name,
-        mobile_number,
-        email_id,
-        hashedPassword,
-        salt,
-        role_name
-      ];
+    await client.query('COMMIT');
 
-      const userResult = await client.query(userQuery, userValues);
-      const userId = userResult.rows[0].id;
+    return user;   // ✅ RETURN ONLY USER
 
-      /* ---------- INSERT INTO USERS_DETAILS ---------- */
-      const detailsQuery = `
-        INSERT INTO users_details (
-          user_id,
-          address,
-          pin_code,
-          country,
-          state,
-          district,
-          taluk,
-          division,
-          region,
-          company_name,
-          gst_name,
-          company_address
-        )
-        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
-      `;
-
-      const detailsValues = [
-        userId,
-        address,
-        pin_code,
-        country,
-        state,
-        district,
-        taluk,
-        division,
-        region,
-        company_name,
-        gst_name,
-        company_address
-      ];
-
-      await client.query(detailsQuery, detailsValues);
-
-      // ✅ COMMIT TRANSACTION
-      await client.query('COMMIT');
-
-      return userResult.rows[0];
-
-    } catch (error) {
-      // ❌ ROLLBACK IF ANY FAILS
-      await client.query('ROLLBACK');
-      console.error('Error registering user:', error);
-      throw error;
-
-    } finally {
-      client.release();
-    }
-  },
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+},
 
   updateLoginStatus: async (userId) => {
     try {
