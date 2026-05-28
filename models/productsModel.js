@@ -304,7 +304,6 @@ const productModel = {
             };
         }
     },
-
     deleteProductById: async (productId, userId) => {
         try {
             const query = `
@@ -427,7 +426,8 @@ const productModel = {
                 recipient_name,
                 ship_to_address,
                 use_same_address,
-                use_same_recipient
+                use_same_recipient,
+                created_at
             } = reqBody;
 
 
@@ -461,7 +461,9 @@ const productModel = {
         ship_to_address,
         use_same_address,
         use_same_recipient,
-        created_by
+        created_by,
+        created_at
+
       )
       VALUES (
         $1, $2, $3, $4,
@@ -475,7 +477,8 @@ const productModel = {
         $12,
         $13,
         $14,
-        $15
+        $15,
+        $16
       )
       RETURNING *;
     `;
@@ -495,7 +498,8 @@ const productModel = {
                 ship_to_address || null,
                 use_same_address ?? false,
                 use_same_recipient ?? false,
-                userId
+                userId,
+                created_at
             ];
 
             const result = await pool.query(query, values);
@@ -537,7 +541,7 @@ const productModel = {
                 : null;
 
             /* =====================================================
-               🔥 BUILD DYNAMIC QUERY
+               BUILD DYNAMIC QUERY
             ===================================================== */
             const fields = [];
             const values = [];
@@ -559,13 +563,14 @@ const productModel = {
             if (body.ship_to_address !== undefined) addField('ship_to_address', body.ship_to_address);
             if (body.use_same_address !== undefined) addField('use_same_address', body.use_same_address);
             if (body.use_same_recipient !== undefined) addField('use_same_recipient', body.use_same_recipient);
-
+            if (body.updated_at !== undefined) addField('updated_at', body.updated_at);
+            
             if (financialData !== null) addField('financial_breakdown', financialData, '::jsonb');
             if (floorData !== null) addField('floor', floorData, '::jsonb');
             if (productsWiseData !== null) addField('products_wise_items', productsWiseData, '::jsonb');
 
             // updated_at
-            addField('updated_at', new Date());
+            // addField('updated_at', new Date());
 
             if (fields.length === 0) {
                 throw new Error('No fields to update');
