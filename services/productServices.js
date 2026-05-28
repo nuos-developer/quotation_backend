@@ -90,36 +90,113 @@ const productService = {
         }
     },
 
-    updateProduct: async (productId, reqBody, userId) => {
+    updateProduct: async (
+
+        req,
+        productId,
+        reqBody,
+        files,
+        userId
+
+    ) => {
+
         try {
-            // 1. Check if product exists
-            const checkProductValid = await productModel.getProductBypId(productId, reqBody, userId);
 
-            console.log('checkProduct :>>>>>>>', checkProductValid);
+            // ===============================================
+            // CHECK PRODUCT EXISTS
+            // ===============================================
+            const checkProduct =
+                await productModel.getProductBypId(
+                    productId
+                );
 
+            if (
+                !checkProduct ||
+                !checkProduct.data
+            ) {
 
-            if (!checkProductValid || !checkProductValid.data) {
                 return {
+
                     success: false,
-                    message: 'Product not found, cannot update details',
+
+                    message:
+                        'Product not found'
                 };
             }
 
-            // 2. Update user details
-            const resp = await productModel.updateProduct(productId, reqBody, userId);
+            // ===============================================
+            // UPDATE PRODUCTS TABLE
+            // ===============================================
+            const updateResp =
+                await productModel.updateProduct(
+
+                    productId,
+                    reqBody,
+                    userId
+                );
+
+            // ===============================================
+            // INSERT PRODUCT IMAGES
+            // ===============================================
+            if (
+                files &&
+                files.length > 0
+            ) {
+
+                const imageUrls =
+                    req.files.map(file => ({
+
+                        product_id:
+                            productId,
+
+                        image_url:
+                            `${req.protocol}://${req.get("host")}/uploads/products/${file.filename}`,
+
+                        is_active: true
+                    }));
+
+                console.log(
+                    'IMAGE URLS:',
+                    imageUrls
+                );
+
+                for (const image of imageUrls) {
+
+                    await productModel.insertProductImage(
+
+                        image.product_id,
+
+                        image.image_url,
+
+                        image.is_active
+                    );
+                }
+            }
 
             return {
+
                 success: true,
-                message: 'User details updated successfully',
-                data: resp.data || resp, // return updated record if available
+
+                message:
+                    'Product updated successfully',
+
+                data:
+                    updateResp.data
             };
 
         } catch (error) {
-            console.error('Error updating user details:', error);
+
+            console.error(error);
+
             return {
+
                 success: false,
-                message: 'Failed to update user details',
-                error: error.message,
+
+                message:
+                    'Failed to update product',
+
+                error:
+                    error.message
             };
         }
     },

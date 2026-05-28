@@ -249,9 +249,18 @@ const productModel = {
     },
 
 
-    updateProduct: async (productId, reqBody, userId) => {
+    updateProduct: async (
+
+        productId,
+        reqBody,
+        userId
+
+    ) => {
+
         try {
+
             const {
+
                 product_name,
                 category,
                 mod_size,
@@ -259,24 +268,32 @@ const productModel = {
                 wiring_type_id,
                 wiring_type,
                 zigbee_type
+
             } = reqBody;
 
             const query = `
-            UPDATE products p
-            SET 
-                product_name = $1,
-                category = $2,
-                mod_size = $3,
-                price = $4,
-                wiring_type_id = $5,
-                wiring_type = $6,
-                zigbee_type = $7,
-                updated_by = $8,
-                updated_at = NOW()
-            WHERE p.id = $9
-            RETURNING *;
-        `;
+
+        UPDATE products
+
+        SET
+
+          product_name = $1,
+          category = $2,
+          mod_size = $3,
+          price = $4,
+          wiring_type_id = $5,
+          wiring_type = $6,
+          zigbee_type = $7,
+          updated_by = $8,
+          updated_at = NOW()
+
+        WHERE id = $9
+
+        RETURNING *;
+      `;
+
             const values = [
+
                 product_name,
                 category,
                 mod_size,
@@ -288,22 +305,86 @@ const productModel = {
                 productId
             ];
 
-            const result = await pool.query(query, values);
+            const result =
+                await pool.query(
+                    query,
+                    values
+                );
 
             return {
+
                 success: true,
-                data: result.rows[0],
+
+                data:
+                    result.rows[0]
             };
 
         } catch (error) {
-            console.error('Error updating Product details:', error);
-            return {
-                success: false,
-                message: 'Failed to update Product details',
-                error: error.message,
-            };
+
+            console.error(error);
+
+            throw error;
         }
     },
+
+    // ===================================================
+    // INSERT PRODUCT IMAGE
+    // ===================================================
+
+    insertProductImage: async (
+
+        productId,
+        imageUrl,
+        isActive = true
+
+    ) => {
+
+        try {
+
+            const query = `
+
+        INSERT INTO product_images (
+
+          product_id,
+          image_url,
+          is_active
+
+        )
+
+        VALUES ($1, $2, $3)
+
+        RETURNING *;
+      `;
+
+            const values = [
+
+                productId,
+                imageUrl,
+                isActive
+            ];
+
+            const result =
+                await pool.query(
+                    query,
+                    values
+                );
+
+            return {
+
+                success: true,
+
+                data:
+                    result.rows[0]
+            };
+
+        } catch (error) {
+
+            console.error(error);
+
+            throw error;
+        }
+    },
+
     deleteProductById: async (productId, userId) => {
         try {
             const query = `
@@ -564,7 +645,7 @@ const productModel = {
             if (body.use_same_address !== undefined) addField('use_same_address', body.use_same_address);
             if (body.use_same_recipient !== undefined) addField('use_same_recipient', body.use_same_recipient);
             if (body.updated_at !== undefined) addField('updated_at', body.updated_at);
-            
+
             if (financialData !== null) addField('financial_breakdown', financialData, '::jsonb');
             if (floorData !== null) addField('floor', floorData, '::jsonb');
             if (productsWiseData !== null) addField('products_wise_items', productsWiseData, '::jsonb');
