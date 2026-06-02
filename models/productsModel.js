@@ -688,37 +688,51 @@ const productModel = {
 
     getProposalData: async (userId) => {
         try {
-
             const result = await pool.query(
-                `SELECT
+                `WITH product_cache AS (
+                    SELECT
                         p.id,
-                        p.proposal_id,
-                        p.proposal_type,
-                        p.created_at,
-                        p.updated_at,
+                        p.product_name,
+                        p.category,
+                        p.price,
+                        p.mod_size,
+                        p.wiring_type_id,
+                        wt.wiring_name,
+                        COALESCE(
+                            jsonb_agg(
+                                DISTINCT pi.image_url
+                            ) FILTER (WHERE pi.image_url IS NOT NULL),
+                            '[]'::jsonb
+                        ) AS images
+                    FROM products p
+                    LEFT JOIN wiring_types wt
+                        ON wt.id = p.wiring_type_id
+                    LEFT JOIN product_images pi
+                        ON pi.product_id = p.id
+                       AND pi.is_active = true
+                    GROUP BY
+                        p.id,
+                        wt.wiring_name
+                )
 
-                        /* ================= STRUCTURE ================= */
-                        floors.floor,
+                SELECT
+                    p.id,
+                    p.proposal_id,
+                    p.proposal_type,
+                    p.created_at,
+                    p.updated_at,
+                    p.commissioning_percentage,
+                    p.discount_percentage,
+                    p.financial_breakdown,
+                    p.grand_total,
+                    p.installation_percentage,
+                    p.recipient_name,
+                    p.ship_to_address,
+                    p.use_same_address,
+                    p.use_same_recipient,
 
-                        /* ================= PRODUCTS WISE ================= */
-                        CASE 
-                          WHEN p.proposal_type = 'productsWise' THEN pw.products_list
-                          ELSE NULL
-                        END AS products_wise_items,
-
-                        p.commissioning_percentage,
-                        p.discount_percentage,
-                        p.financial_breakdown,
-                        p.grand_total,
-                        p.installation_percentage,
-                         p.recipient_name,
-						p.ship_to_address,
-						p.use_same_address,
-						p.use_same_recipient,
-
-                        /* ================= CLIENT ================= */
-                        jsonb_build_object(
-                            'id', c.id,
+                    jsonb_build_object(
+                         'id', c.id,
                             'client_id', c.client_id,
                             'first_name', c.first_name,
                             'last_name', c.last_name,
@@ -748,167 +762,179 @@ const productModel = {
                             'architect_name', c.architect_name,
                             'architect_phone', c.architect_phone,
                             'address_line_two', c.address_line_two
-                        ) AS client_details,
+                    ) AS client_details,
 
-                        /* ================= USER ================= */
+                    jsonb_build_object(
+                        'id', u.id,
+                        'user_name', u.user_name,
+                        'role',
                         jsonb_build_object(
-                            'id', u.id,
-                            'user_name', u.user_name,
-                            'role', jsonb_build_object(
-                                'role_id', r.id,
-                                'role_name', r.role_name
-                            )
-                        ) AS created_by
+                            'role_id', r.id,
+                            'role_name', r.role_name
+                        )
+                    ) AS created_by,
 
-                    FROM proposals p
+                    floors.floor,
 
-                    /* =========================================================
-                       🔥 STRUCTURE (FLOOR → HOME → ROOM → SWITCHBOARD)
-                    ========================================================= */
-                    LEFT JOIN LATERAL (
-                        SELECT jsonb_agg(
-                            jsonb_build_object(
-                                'name', fl->>'name',
-                                'homes',
-                                (
-                                    SELECT jsonb_agg(
-                                        jsonb_build_object(
-                                            'name', hm->>'name',
-                                            'rooms',
-                                            (
-                                                SELECT jsonb_agg(
-                                                    jsonb_build_object(
+                    CASE
+                        WHEN p.proposal_type = 'productsWise'
+                        THEN pw.products_list
+                        ELSE NULL
+                    END AS products_wise_items
 
-                                                        'name', rm->>'name',
+                FROM proposals p
 
-                                                        /* 🔥 ROOM PRODUCTS */
-                                                        'products',
-                                                        COALESCE(
-                                                          (
-                                                            SELECT jsonb_agg(
-                                                              jsonb_build_object(
-                                                                'id', pr.id,
-                                                                'name', pr.product_name,
-                                                                'category', pr.category,
-                                                                'price', pr.price,
-                                                                'modSize', pr.mod_size,
-                                                                'wiring_type_id', pr.wiring_type_id,
-                                                                'wiring_type', wt.wiring_name,
-                                                                'images', (
-                                                                  SELECT jsonb_agg(pi.image_url)
-                                                                  FROM product_images pi
-                                                                  WHERE pi.product_id = pr.id
-                                                                  AND pi.is_active = true
-                                                                )
-                                                              )
-                                                            )
-                                                            FROM jsonb_array_elements_text(
-                                                              COALESCE(rm->'products', '[]'::jsonb)
-                                                            ) pid
-                                                            JOIN products pr ON pr.id = pid::int
-                                                            LEFT JOIN wiring_types wt ON wt.id = pr.wiring_type_id
-                                                          ),
-                                                          '[]'::jsonb
-                                                        ),
+                LEFT JOIN clients c
+                    ON c.id = p.client_id
 
-                                                        /* 🔥 SWITCHBOARDS */
-                                                        'switchboards',
-                                                        (
-                                                            SELECT jsonb_agg(
+                LEFT JOIN users u
+                    ON u.id = p.created_by
+
+                LEFT JOIN roles r
+                    ON r.id = u.role_id
+
+                /* FLOOR JSON */
+
+                LEFT JOIN LATERAL (
+                    SELECT jsonb_agg(
+                        jsonb_build_object(
+                            'name', fl->>'name',
+                            'homes',
+                            (
+                                SELECT jsonb_agg(
+                                    jsonb_build_object(
+                                        'name', hm->>'name',
+                                        'rooms',
+                                        (
+                                            SELECT jsonb_agg(
+                                                jsonb_build_object(
+                                                    'name', rm->>'name',
+
+                                                    'products',
+                                                    (
+                                                        SELECT COALESCE(
+                                                            jsonb_agg(
                                                                 jsonb_build_object(
-                                                                    'name', sb->>'name',
-                                                                    'mod', sb->'mod',
-                                                                    'colorValue', sb->'colorValue',
+                                                                    'id', pc.id,
+                                                                    'name', pc.product_name,
+                                                                    'category', pc.category,
+                                                                    'price', pc.price,
+                                                                    'modSize', pc.mod_size,
+                                                                    'wiring_type_id', pc.wiring_type_id,
+                                                                    'wiring_type', pc.wiring_name,
+                                                                    'images', pc.images
+                                                                )
+                                                            ),
+                                                            '[]'::jsonb
+                                                        )
+                                                        FROM jsonb_array_elements_text(
+                                                            COALESCE(
+                                                                rm->'products',
+                                                                '[]'::jsonb
+                                                            )
+                                                        ) pid
+                                                        JOIN product_cache pc
+                                                            ON pc.id = pid::int
+                                                    ),
 
-                                                                    'products',
-                                                                    COALESCE(
-                                                                      (
-                                                                        SELECT jsonb_agg(
-                                                                          jsonb_build_object(
-                                                                            'id', pr.id,
-                                                                            'name', pr.product_name,
-                                                                            'category', pr.category,
-                                                                            'price', pr.price,
-                                                                            'modSize', pr.mod_size,
-                                                                            'wiring_type_id', pr.wiring_type_id,
-                                                                            'wiring_type', wt.wiring_name,
-                                                                            'images', (
-                                                                              SELECT jsonb_agg(pi.image_url)
-                                                                              FROM product_images pi
-                                                                              WHERE pi.product_id = pr.id
-                                                                              AND pi.is_active = true
+                                                    'switchboards',
+                                                    (
+                                                        SELECT jsonb_agg(
+                                                            jsonb_build_object(
+                                                                'name', sb->>'name',
+                                                                'mod', sb->'mod',
+                                                                'colorValue', sb->'colorValue',
+
+                                                                'products',
+                                                                (
+                                                                    SELECT COALESCE(
+                                                                        jsonb_agg(
+                                                                            jsonb_build_object(
+                                                                                'id', pc.id,
+                                                                                'name', pc.product_name,
+                                                                                'category', pc.category,
+                                                                                'price', pc.price,
+                                                                                'modSize', pc.mod_size,
+                                                                                'wiring_type_id', pc.wiring_type_id,
+                                                                                'wiring_type', pc.wiring_name,
+                                                                                'images', pc.images
                                                                             )
-                                                                          )
-                                                                        )
-                                                                        FROM jsonb_array_elements_text(
-                                                                          COALESCE(sb->'products', '[]'::jsonb)
-                                                                        ) pid
-                                                                        JOIN products pr ON pr.id = pid::int
-                                                                        LEFT JOIN wiring_types wt ON wt.id = pr.wiring_type_id
-                                                                      ),
-                                                                      '[]'::jsonb
+                                                                        ),
+                                                                        '[]'::jsonb
                                                                     )
+                                                                    FROM jsonb_array_elements_text(
+                                                                        COALESCE(
+                                                                            sb->'products',
+                                                                            '[]'::jsonb
+                                                                        )
+                                                                    ) pid
+                                                                    JOIN product_cache pc
+                                                                        ON pc.id = pid::int
                                                                 )
                                                             )
-                                                            FROM jsonb_array_elements(
-                                                                COALESCE(rm->'switchboards', '[]'::jsonb)
-                                                            ) sb
                                                         )
-
+                                                        FROM jsonb_array_elements(
+                                                            COALESCE(
+                                                                rm->'switchboards',
+                                                                '[]'::jsonb
+                                                            )
+                                                        ) sb
                                                     )
                                                 )
-                                                FROM jsonb_array_elements(
-                                                    COALESCE(hm->'rooms', '[]'::jsonb)
-                                                ) rm
                                             )
+                                            FROM jsonb_array_elements(
+                                                COALESCE(
+                                                    hm->'rooms',
+                                                    '[]'::jsonb
+                                                )
+                                            ) rm
                                         )
                                     )
-                                    FROM jsonb_array_elements(
-                                        COALESCE(fl->'homes', '[]'::jsonb)
-                                    ) hm
                                 )
+                                FROM jsonb_array_elements(
+                                    COALESCE(
+                                        fl->'homes',
+                                        '[]'::jsonb
+                                    )
+                                ) hm
                             )
-                        ) AS floor
-                        FROM jsonb_array_elements(
-                            COALESCE(p.floor, '[]'::jsonb)
-                        ) fl
-                    ) floors ON TRUE
+                        )
+                    ) AS floor
+                    FROM jsonb_array_elements(
+                        COALESCE(
+                            p.floor,
+                            '[]'::jsonb
+                        )
+                    ) fl
+                ) floors ON TRUE
 
-                    /* =========================================================
-                       🔥 PRODUCTS WISE
-                    ========================================================= */
-                    LEFT JOIN LATERAL (
-                        SELECT jsonb_agg(
-                            jsonb_build_object(
-                                'id', pr.id,
-                                'name', pr.product_name,
-                                'category', pr.category,
-                                'price', pr.price,
-                                'quantity', (item->>'quantity')::int,
-                                'wiring_type_id', pr.wiring_type_id,
-                                'wiring_type', wt.wiring_name,
-                                'images', (
-                                    SELECT jsonb_agg(pi.image_url)
-                                    FROM product_images pi
-                                    WHERE pi.product_id = pr.id
-                                    AND pi.is_active = true
-                                )
-                            )
-                        ) AS products_list
-                        FROM jsonb_array_elements(
-                            COALESCE(p.products_wise_items, '[]'::jsonb)
-                        ) item
-                        JOIN products pr ON pr.id = (item->>'id')::int
-                        LEFT JOIN wiring_types wt ON wt.id = pr.wiring_type_id
-                    ) pw ON TRUE
+                /* PRODUCTS WISE */
 
-                    /* ================= JOINS ================= */
-                    LEFT JOIN clients c ON c.id = p.client_id  
-                    LEFT JOIN users u ON u.id = p.created_by    
-                    LEFT JOIN roles r ON r.id = u.role_id  
+                LEFT JOIN LATERAL (
+                    SELECT jsonb_agg(
+                        jsonb_build_object(
+                            'id', pc.id,
+                            'name', pc.product_name,
+                            'category', pc.category,
+                            'price', pc.price,
+                            'quantity', (item->>'quantity')::int,
+                            'wiring_type_id', pc.wiring_type_id,
+                            'wiring_type', pc.wiring_name,
+                            'images', pc.images
+                        )
+                    ) AS products_list
+                    FROM jsonb_array_elements(
+                        COALESCE(
+                            p.products_wise_items,
+                            '[]'::jsonb
+                        )
+                    ) item
+                    JOIN product_cache pc
+                        ON pc.id = (item->>'id')::int
+                ) pw ON TRUE
 
-                    /* ================= FILTER ================= */
-                    WHERE p.deleted_at IS NULL;
+                WHERE p.deleted_at IS NULL
+                ORDER BY p.id ASC;
 
                 `);
 
@@ -934,35 +960,50 @@ const productModel = {
         try {
 
             const result = await pool.query(
-                `SELECT
+                `WITH product_cache AS (
+                    SELECT
                         p.id,
-                        p.proposal_id,
-                        p.proposal_type,
-                        p.created_at,
-                        p.updated_at,
+                        p.product_name,
+                        p.category,
+                        p.price,
+                        p.mod_size,
+                        p.wiring_type_id,
+                        wt.wiring_name,
+                        COALESCE(
+                            jsonb_agg(
+                                DISTINCT pi.image_url
+                            ) FILTER (WHERE pi.image_url IS NOT NULL),
+                            '[]'::jsonb
+                        ) AS images
+                    FROM products p
+                    LEFT JOIN wiring_types wt
+                        ON wt.id = p.wiring_type_id
+                    LEFT JOIN product_images pi
+                        ON pi.product_id = p.id
+                       AND pi.is_active = true
+                    GROUP BY
+                        p.id,
+                        wt.wiring_name
+                )
 
-                        /* ================= STRUCTURE ================= */
-                        floors.floor,
+                SELECT
+                    p.id,
+                    p.proposal_id,
+                    p.proposal_type,
+                    p.created_at,
+                    p.updated_at,
+                    p.commissioning_percentage,
+                    p.discount_percentage,
+                    p.financial_breakdown,
+                    p.grand_total,
+                    p.installation_percentage,
+                    p.recipient_name,
+                    p.ship_to_address,
+                    p.use_same_address,
+                    p.use_same_recipient,
 
-                        /* ================= PRODUCTS WISE ================= */
-                        CASE 
-                          WHEN p.proposal_type = 'productsWise' THEN pw.products_list
-                          ELSE NULL
-                        END AS products_wise_items,
-
-                        p.commissioning_percentage,
-                        p.discount_percentage,
-                        p.financial_breakdown,
-                        p.grand_total,
-                        p.installation_percentage,
-                         p.recipient_name,
-						p.ship_to_address,
-						p.use_same_address,
-						p.use_same_recipient,
-
-                        /* ================= CLIENT ================= */
-                        jsonb_build_object(
-                            'id', c.id,
+                    jsonb_build_object(
+                         'id', c.id,
                             'client_id', c.client_id,
                             'first_name', c.first_name,
                             'last_name', c.last_name,
@@ -992,168 +1033,181 @@ const productModel = {
                             'architect_name', c.architect_name,
                             'architect_phone', c.architect_phone,
                             'address_line_two', c.address_line_two
-                        ) AS client_details,
+                    ) AS client_details,
 
-                        /* ================= USER ================= */
+                    jsonb_build_object(
+                        'id', u.id,
+                        'user_name', u.user_name,
+                        'role',
                         jsonb_build_object(
-                            'id', u.id,
-                            'user_name', u.user_name,
-                            'role', jsonb_build_object(
-                                'role_id', r.id,
-                                'role_name', r.role_name
-                            )
-                        ) AS created_by
+                            'role_id', r.id,
+                            'role_name', r.role_name
+                        )
+                    ) AS created_by,
 
-                    FROM proposals p
+                    floors.floor,
 
-                    /* =========================================================
-                       🔥 STRUCTURE (FLOOR → HOME → ROOM → SWITCHBOARD)
-                    ========================================================= */
-                    LEFT JOIN LATERAL (
-                        SELECT jsonb_agg(
-                            jsonb_build_object(
-                                'name', fl->>'name',
-                                'homes',
-                                (
-                                    SELECT jsonb_agg(
-                                        jsonb_build_object(
-                                            'name', hm->>'name',
-                                            'rooms',
-                                            (
-                                                SELECT jsonb_agg(
-                                                    jsonb_build_object(
+                    CASE
+                        WHEN p.proposal_type = 'productsWise'
+                        THEN pw.products_list
+                        ELSE NULL
+                    END AS products_wise_items
 
-                                                        'name', rm->>'name',
+                FROM proposals p
 
-                                                        /* 🔥 ROOM PRODUCTS */
-                                                        'products',
-                                                        COALESCE(
-                                                          (
-                                                            SELECT jsonb_agg(
-                                                              jsonb_build_object(
-                                                                'id', pr.id,
-                                                                'name', pr.product_name,
-                                                                'category', pr.category,
-                                                                'price', pr.price,
-                                                                'modSize', pr.mod_size,
-                                                                'wiring_type_id', pr.wiring_type_id,
-                                                                'wiring_type', wt.wiring_name,
-                                                                'images', (
-                                                                  SELECT jsonb_agg(pi.image_url)
-                                                                  FROM product_images pi
-                                                                  WHERE pi.product_id = pr.id
-                                                                  AND pi.is_active = true
-                                                                )
-                                                              )
-                                                            )
-                                                            FROM jsonb_array_elements_text(
-                                                              COALESCE(rm->'products', '[]'::jsonb)
-                                                            ) pid
-                                                            JOIN products pr ON pr.id = pid::int
-                                                            LEFT JOIN wiring_types wt ON wt.id = pr.wiring_type_id
-                                                          ),
-                                                          '[]'::jsonb
-                                                        ),
+                LEFT JOIN clients c
+                    ON c.id = p.client_id
 
-                                                        /* 🔥 SWITCHBOARDS */
-                                                        'switchboards',
-                                                        (
-                                                            SELECT jsonb_agg(
+                LEFT JOIN users u
+                    ON u.id = p.created_by
+
+                LEFT JOIN roles r
+                    ON r.id = u.role_id
+
+                /* FLOOR JSON */
+
+                LEFT JOIN LATERAL (
+                    SELECT jsonb_agg(
+                        jsonb_build_object(
+                            'name', fl->>'name',
+                            'homes',
+                            (
+                                SELECT jsonb_agg(
+                                    jsonb_build_object(
+                                        'name', hm->>'name',
+                                        'rooms',
+                                        (
+                                            SELECT jsonb_agg(
+                                                jsonb_build_object(
+                                                    'name', rm->>'name',
+
+                                                    'products',
+                                                    (
+                                                        SELECT COALESCE(
+                                                            jsonb_agg(
                                                                 jsonb_build_object(
-                                                                    'name', sb->>'name',
-                                                                    'mod', sb->'mod',
-                                                                    'colorValue', sb->'colorValue',
+                                                                    'id', pc.id,
+                                                                    'name', pc.product_name,
+                                                                    'category', pc.category,
+                                                                    'price', pc.price,
+                                                                    'modSize', pc.mod_size,
+                                                                    'wiring_type_id', pc.wiring_type_id,
+                                                                    'wiring_type', pc.wiring_name,
+                                                                    'images', pc.images
+                                                                )
+                                                            ),
+                                                            '[]'::jsonb
+                                                        )
+                                                        FROM jsonb_array_elements_text(
+                                                            COALESCE(
+                                                                rm->'products',
+                                                                '[]'::jsonb
+                                                            )
+                                                        ) pid
+                                                        JOIN product_cache pc
+                                                            ON pc.id = pid::int
+                                                    ),
 
-                                                                    'products',
-                                                                    COALESCE(
-                                                                      (
-                                                                        SELECT jsonb_agg(
-                                                                          jsonb_build_object(
-                                                                            'id', pr.id,
-                                                                            'name', pr.product_name,
-                                                                            'category', pr.category,
-                                                                            'price', pr.price,
-                                                                            'modSize', pr.mod_size,
-                                                                            'wiring_type_id', pr.wiring_type_id,
-                                                                            'wiring_type', wt.wiring_name,
-                                                                            'images', (
-                                                                              SELECT jsonb_agg(pi.image_url)
-                                                                              FROM product_images pi
-                                                                              WHERE pi.product_id = pr.id
-                                                                              AND pi.is_active = true
+                                                    'switchboards',
+                                                    (
+                                                        SELECT jsonb_agg(
+                                                            jsonb_build_object(
+                                                                'name', sb->>'name',
+                                                                'mod', sb->'mod',
+                                                                'colorValue', sb->'colorValue',
+
+                                                                'products',
+                                                                (
+                                                                    SELECT COALESCE(
+                                                                        jsonb_agg(
+                                                                            jsonb_build_object(
+                                                                                'id', pc.id,
+                                                                                'name', pc.product_name,
+                                                                                'category', pc.category,
+                                                                                'price', pc.price,
+                                                                                'modSize', pc.mod_size,
+                                                                                'wiring_type_id', pc.wiring_type_id,
+                                                                                'wiring_type', pc.wiring_name,
+                                                                                'images', pc.images
                                                                             )
-                                                                          )
-                                                                        )
-                                                                        FROM jsonb_array_elements_text(
-                                                                          COALESCE(sb->'products', '[]'::jsonb)
-                                                                        ) pid
-                                                                        JOIN products pr ON pr.id = pid::int
-                                                                        LEFT JOIN wiring_types wt ON wt.id = pr.wiring_type_id
-                                                                      ),
-                                                                      '[]'::jsonb
+                                                                        ),
+                                                                        '[]'::jsonb
                                                                     )
+                                                                    FROM jsonb_array_elements_text(
+                                                                        COALESCE(
+                                                                            sb->'products',
+                                                                            '[]'::jsonb
+                                                                        )
+                                                                    ) pid
+                                                                    JOIN product_cache pc
+                                                                        ON pc.id = pid::int
                                                                 )
                                                             )
-                                                            FROM jsonb_array_elements(
-                                                                COALESCE(rm->'switchboards', '[]'::jsonb)
-                                                            ) sb
                                                         )
-
+                                                        FROM jsonb_array_elements(
+                                                            COALESCE(
+                                                                rm->'switchboards',
+                                                                '[]'::jsonb
+                                                            )
+                                                        ) sb
                                                     )
                                                 )
-                                                FROM jsonb_array_elements(
-                                                    COALESCE(hm->'rooms', '[]'::jsonb)
-                                                ) rm
                                             )
+                                            FROM jsonb_array_elements(
+                                                COALESCE(
+                                                    hm->'rooms',
+                                                    '[]'::jsonb
+                                                )
+                                            ) rm
                                         )
                                     )
-                                    FROM jsonb_array_elements(
-                                        COALESCE(fl->'homes', '[]'::jsonb)
-                                    ) hm
                                 )
+                                FROM jsonb_array_elements(
+                                    COALESCE(
+                                        fl->'homes',
+                                        '[]'::jsonb
+                                    )
+                                ) hm
                             )
-                        ) AS floor
-                        FROM jsonb_array_elements(
-                            COALESCE(p.floor, '[]'::jsonb)
-                        ) fl
-                    ) floors ON TRUE
+                        )
+                    ) AS floor
+                    FROM jsonb_array_elements(
+                        COALESCE(
+                            p.floor,
+                            '[]'::jsonb
+                        )
+                    ) fl
+                ) floors ON TRUE
 
-                    /* =========================================================
-                       🔥 PRODUCTS WISE
-                    ========================================================= */
-                    LEFT JOIN LATERAL (
-                        SELECT jsonb_agg(
-                            jsonb_build_object(
-                                'id', pr.id,
-                                'name', pr.product_name,
-                                'category', pr.category,
-                                'price', pr.price,
-                                'quantity', (item->>'quantity')::int,
-                                'wiring_type_id', pr.wiring_type_id,
-                                'wiring_type', wt.wiring_name,
-                                'images', (
-                                    SELECT jsonb_agg(pi.image_url)
-                                    FROM product_images pi
-                                    WHERE pi.product_id = pr.id
-                                    AND pi.is_active = true
-                                )
-                            )
-                        ) AS products_list
-                        FROM jsonb_array_elements(
-                            COALESCE(p.products_wise_items, '[]'::jsonb)
-                        ) item
-                        JOIN products pr ON pr.id = (item->>'id')::int
-                        LEFT JOIN wiring_types wt ON wt.id = pr.wiring_type_id
-                    ) pw ON TRUE
+                /* PRODUCTS WISE */
 
-                    /* ================= JOINS ================= */
-                    LEFT JOIN clients c ON c.id = p.client_id  
-                    LEFT JOIN users u ON u.id = p.created_by    
-                    LEFT JOIN roles r ON r.id = u.role_id  
+                LEFT JOIN LATERAL (
+                    SELECT jsonb_agg(
+                        jsonb_build_object(
+                            'id', pc.id,
+                            'name', pc.product_name,
+                            'category', pc.category,
+                            'price', pc.price,
+                            'quantity', (item->>'quantity')::int,
+                            'wiring_type_id', pc.wiring_type_id,
+                            'wiring_type', pc.wiring_name,
+                            'images', pc.images
+                        )
+                    ) AS products_list
+                    FROM jsonb_array_elements(
+                        COALESCE(
+                            p.products_wise_items,
+                            '[]'::jsonb
+                        )
+                    ) item
+                    JOIN product_cache pc
+                        ON pc.id = (item->>'id')::int
+                ) pw ON TRUE
 
-                    /* ================= FILTER ================= */
-                  
-                    WHERE p.id = $1 and  p.deleted_at IS NULL;`, [proposalId]);
+                WHERE p.id = $1 AND p.deleted_at IS NULL
+                ORDER BY p.id ASC;`
+
+                , [proposalId]);
 
             if (!result.rows.length) {
                 return {

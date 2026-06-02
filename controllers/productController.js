@@ -241,16 +241,17 @@ const productController = {
         try {
             const reqBody = req.body
             const userId = req.user.id
-            console.log('req.user.id:>>>>>>>>>>>>>>>', req.user.id);
+            // console.log('req.user.id:>>>>>>>>>>>>>>>', req.user.id);
             const resp = await productService.getProposalData(userId)
             res.status(HttpStatus.CREATED).json({
                 data: resp
             });
         } catch (error) {
-            console.error(error);
             res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: HttpMessage.INTERNAL_SERVER_ERROR });
+            console.error(error);
         }
     },
+
     getProposalDataById: async (req, res) => {
         try {
             const proposalId = req.params.id

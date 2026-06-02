@@ -303,7 +303,7 @@ const productService = {
         try {
 
             const resp = await productModel.getProposalData(userId)
-            console.log('resp :>>>>>>>>>', resp);
+            // console.log('resp :>>>>>>>>>', resp);
 
             return resp;
         } catch (error) {
