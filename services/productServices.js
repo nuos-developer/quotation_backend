@@ -91,114 +91,43 @@ const productService = {
     },
 
     updateProduct: async (
-
         req,
         productId,
         reqBody,
         files,
         userId
-
     ) => {
 
-        try {
+        const updateResp =
+            await productModel.updateProduct(
+                productId,
+                reqBody,
+                userId
+            );
 
-            // ===============================================
-            // CHECK PRODUCT EXISTS
-            // ===============================================
-            const checkProduct =
-                await productModel.getProductBypId(
-                    productId
-                );
+        if (files && files.length > 0) {
 
-            if (
-                !checkProduct ||
-                !checkProduct.data
-            ) {
+            // Optional:
+            // await productModel.deleteProductImages(productId);
 
-                return {
+            for (const file of files) {
 
-                    success: false,
+                const imageUrl =
+                    `${req.protocol}://${req.get('host')}/uploads/products/${file.filename}`;
 
-                    message:
-                        'Product not found'
-                };
-            }
-
-            // ===============================================
-            // UPDATE PRODUCTS TABLE
-            // ===============================================
-            const updateResp =
-                await productModel.updateProduct(
-
+                await productModel.insertProductImage(
                     productId,
-                    reqBody,
-                    userId
+                    imageUrl,
+                    true
                 );
-
-            // ===============================================
-            // INSERT PRODUCT IMAGES
-            // ===============================================
-            if (
-                files &&
-                files.length > 0
-            ) {
-
-                const imageUrls =
-                    req.files.map(file => ({
-
-                        product_id:
-                            productId,
-
-                        image_url:
-                            `${req.protocol}://${req.get("host")}/uploads/products/${file.filename}`,
-
-                        is_active: true
-                    }));
-
-                console.log(
-                    'IMAGE URLS:',
-                    imageUrls
-                );
-
-                for (const image of imageUrls) {
-
-                    await productModel.insertProductImage(
-
-                        image.product_id,
-
-                        image.image_url,
-
-                        image.is_active
-                    );
-                }
             }
-
-            return {
-
-                success: true,
-
-                message:
-                    'Product updated successfully',
-
-                data:
-                    updateResp.data
-            };
-
-        } catch (error) {
-
-            console.error(error);
-
-            return {
-
-                success: false,
-
-                message:
-                    'Failed to update product',
-
-                error:
-                    error.message
-            };
         }
+
+        return {
+            success: true,
+            message: 'Product updated successfully',
+            data: updateResp.data
+        };
     },
 
     deleteProductById: async (productId, userId) => {

@@ -24,8 +24,11 @@ router.get('/product/getInactiveProduct', authMiddleware(), productController.ge
 router.put(
   '/product/updateProduct/:id',
   authMiddleware(),
+  upload.array('images'),
   productController.updateProduct
 );
+
+
 router.delete('/product/deleteProduct/:id', authMiddleware(), productController.deleteProductById)
 
 router.delete('/product/activeProduct/:id', authMiddleware(), productController.activeProduct)

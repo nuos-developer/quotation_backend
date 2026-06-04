@@ -97,64 +97,33 @@ const productController = {
         }
     },
 
-  updateProduct: async (
-    req,
-    res
-  ) => {
+    updateProduct: async (req, res) => {
 
-    try {
+        try {
 
-      const productId =
-        req.params.id;
+            const productId = req.params.id;
 
-      const reqBody =
-        req.body;
+            const resp =
+                await productService.updateProduct(
+                    req,
+                    productId,
+                    req.body,
+                    req.files || [],
+                    req.user.id
+                );
 
-      const files =
-        req.files;
+            return res.status(200).json(resp);
 
-      const userId =
-        req.user.id;
+        } catch (error) {
 
-      console.log(
-        'BODY:',
-        req.body
-      );
+            console.error(error);
 
-      console.log(
-        'FILES:',
-        req.files
-      );
-
-      const resp =
-        await productService.updateProduct(
-
-          req,
-          productId,
-          reqBody,
-          files,
-          userId
-        );
-
-      return res.status(
-        HttpStatus.CREATED
-      ).json(resp);
-
-    } catch (error) {
-
-      console.error(error);
-
-      return res.status(
-       HttpStatus.INTERNAL_SERVER_ERROR
-      ).json({
-
-        success: false,
-
-        message:
-          'Internal Server Error'
-      });
-    }
-  },
+            return res.status(500).json({
+                success: false,
+                message: 'Internal Server Error'
+            });
+        }
+    },
 
     deleteProductById: async (req, res) => {
         try {
