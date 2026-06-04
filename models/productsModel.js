@@ -332,7 +332,6 @@ const productModel = {
     // ===================================================
 
     insertProductImage: async (
-
         productId,
         imageUrl,
         isActive = true
@@ -342,14 +341,10 @@ const productModel = {
         try {
 
             const query = `
-
         INSERT INTO product_images (
-
           product_id,
           image_url,
-          is_active
-
-        )
+          is_active)
 
         VALUES ($1, $2, $3)
 
@@ -709,7 +704,7 @@ const productModel = {
                         ON wt.id = p.wiring_type_id
                     LEFT JOIN product_images pi
                         ON pi.product_id = p.id
-                       AND pi.is_active = true
+                       
                     GROUP BY
                         p.id,
                         wt.wiring_name
@@ -823,7 +818,7 @@ const productModel = {
                                                                   SELECT jsonb_agg(pi.image_url)
                                                                   FROM product_images pi
                                                                   WHERE pi.product_id = pr.id
-                                                                  AND pi.is_active = true
+                                                                  
                                                                 )
                                                               )
                                                             )
@@ -861,7 +856,7 @@ const productModel = {
                                                                               SELECT jsonb_agg(pi.image_url)
                                                                               FROM product_images pi
                                                                               WHERE pi.product_id = pr.id
-                                                                              AND pi.is_active = true
+                                                                              
                                                                             )
                                                                           )
                                                                         )
@@ -916,7 +911,7 @@ const productModel = {
                                     SELECT jsonb_agg(pi.image_url)
                                     FROM product_images pi
                                     WHERE pi.product_id = pr.id
-                                    AND pi.is_active = true
+                                    
                                 )
                             )
                         ) AS products_list
@@ -1067,7 +1062,7 @@ const productModel = {
                                                                   SELECT jsonb_agg(pi.image_url)
                                                                   FROM product_images pi
                                                                   WHERE pi.product_id = pr.id
-                                                                  AND pi.is_active = true
+                                                                  
                                                                 )
                                                               )
                                                             )
@@ -1105,7 +1100,7 @@ const productModel = {
                                                                               SELECT jsonb_agg(pi.image_url)
                                                                               FROM product_images pi
                                                                               WHERE pi.product_id = pr.id
-                                                                              AND pi.is_active = true
+                                                                              
                                                                             )
                                                                           )
                                                                         )
@@ -1160,7 +1155,7 @@ const productModel = {
                                     SELECT jsonb_agg(pi.image_url)
                                     FROM product_images pi
                                     WHERE pi.product_id = pr.id
-                                    AND pi.is_active = true
+                                    
                                 )
                             )
                         ) AS products_list
