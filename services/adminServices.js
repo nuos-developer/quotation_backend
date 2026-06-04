@@ -157,6 +157,24 @@ const adminService = {
             };
         }
     },
+
+
+    deleteUserById: async (deletedBy, id) => {
+        try {
+
+            const resp = await dbModel.deleteUserById(deletedBy, id)
+            return resp
+
+        } catch (error) {
+            console.error('Error delete proposal:', error);
+            return {
+                success: false,
+                message: 'Failed to delete proposal',
+                error: error.message,
+            };
+        }
+    },
+
     getClientData: async () => {
         try {
             const resp = await dbModel.getClientData();

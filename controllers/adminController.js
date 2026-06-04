@@ -130,6 +130,24 @@ const adminController = {
             res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: HttpMessage.INTERNAL_SERVER_ERROR });
         }
     },
+
+       deleteUser: async (req, res) => {
+        try {
+            const id = req.user.id;
+            const deletedBy = req.params.id
+
+            const resp = await adminService.deleteUserById(deletedBy, id)
+
+            res.status(HttpStatus.CREATED).json({
+                data: resp
+            });
+
+        } catch (error) {
+            console.error(error);
+            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: HttpMessage.INTERNAL_SERVER_ERROR });
+        }
+    },
+
     getClientData: async (req, res) => {
         try {
             const adminId = req.user.id

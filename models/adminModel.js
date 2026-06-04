@@ -516,9 +516,34 @@ const dbModel = {
       userId,
       module_id
     ]);
-  }
+  },
+// , deleteUserById(deletedBy, id)
+ deleteUserById: async (deletedBy, id) => {
+        try {
+            const query = `
+            UPDATE users u
+            SET 
+                deleted_by = $1,
+                deleted_at = NOW()
+            WHERE u.id = $2
+            RETURNING *;`;
 
+            const result = await pool.query(query, [id, deletedBy]);
 
+            return {
+                success: true,
+                data: result.rows[0],
+            };
+
+        } catch (error) {
+            console.error('Error deleting proposal details:', error);
+            return {
+                success: false,
+                message: 'Failed to delete proposal details',
+                error: error.message,
+            };
+        }
+    },
 
 
 };
