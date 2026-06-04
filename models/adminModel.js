@@ -23,34 +23,34 @@ const dbModel = {
       throw error;
     }
   },
- register: async (reqBody, salt, hashedPassword) => {
+  register: async (reqBody, salt, hashedPassword) => {
 
-  const {
-    first_name,
-    last_name,
-    user_name,
-    mobile_number,
-    email_id,
-    role_name,
-    address,
-    pin_code,
-    country,
-    state,
-    district,
-    taluk,
-    division,
-    region,
-    company_name,
-    gst_name,
-    company_address
-  } = reqBody;
+    const {
+      first_name,
+      last_name,
+      user_name,
+      mobile_number,
+      email_id,
+      role_name,
+      address,
+      pin_code,
+      country,
+      state,
+      district,
+      taluk,
+      division,
+      region,
+      company_name,
+      gst_name,
+      company_address
+    } = reqBody;
 
-  const client = await pool.connect();
+    const client = await pool.connect();
 
-  try {
-    await client.query('BEGIN');
+    try {
+      await client.query('BEGIN');
 
-    const userQuery = `
+      const userQuery = `
       INSERT INTO users (
         first_name, last_name, user_name, mobile_number,
         email_id, password, salt_password, role_name
@@ -59,23 +59,23 @@ const dbModel = {
       RETURNING id, first_name, email_id
     `;
 
-    const userValues = [
-      first_name,
-      last_name || null,
-      user_name || null,
-      mobile_number || null,
-      email_id,
-      hashedPassword,
-      salt,
-      role_name || null
-    ];
+      const userValues = [
+        first_name,
+        last_name || null,
+        user_name || null,
+        mobile_number || null,
+        email_id,
+        hashedPassword,
+        salt,
+        role_name || null
+      ];
 
-    const userResult = await client.query(userQuery, userValues);
-    const user = userResult.rows[0];   // ✅ IMPORTANT
+      const userResult = await client.query(userQuery, userValues);
+      const user = userResult.rows[0];   // ✅ IMPORTANT
 
-    const n = (v) => v || null;
+      const n = (v) => v || null;
 
-    const detailsQuery = `
+      const detailsQuery = `
       INSERT INTO users_details (
         user_id, address, pin_code, country, state,
         district, taluk, division, region,
@@ -84,32 +84,32 @@ const dbModel = {
       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
     `;
 
-    await client.query(detailsQuery, [
-      user.id,
-      n(address),
-      n(pin_code),
-      n(country),
-      n(state),
-      n(district),
-      n(taluk),
-      n(division),
-      n(region),
-      n(company_name),
-      n(gst_name),
-      n(company_address)
-    ]);
+      await client.query(detailsQuery, [
+        user.id,
+        n(address),
+        n(pin_code),
+        n(country),
+        n(state),
+        n(district),
+        n(taluk),
+        n(division),
+        n(region),
+        n(company_name),
+        n(gst_name),
+        n(company_address)
+      ]);
 
-    await client.query('COMMIT');
+      await client.query('COMMIT');
 
-    return user;   // ✅ RETURN ONLY USER
+      return user;   // ✅ RETURN ONLY USER
 
-  } catch (error) {
-    await client.query('ROLLBACK');
-    throw error;
-  } finally {
-    client.release();
-  }
-},
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  },
 
   updateLoginStatus: async (userId) => {
     try {
@@ -209,12 +209,42 @@ const dbModel = {
     try {
       // const { } = reqBody
       const query =
-        `SELECT U.id, U.user_name, U.first_name, U.last_name, U.email_id, U.mobile_number, UD.address, UD.pin_code , UD.country , UD.state , UD.district , UD.taluk, UD.division , 
-                  UD.region ,
-                  UD.company_address , UD.company_name, UD.gst_name, u.role_name , u.is_admin_approve
-                  FROM users u 
-                  INNER JOIN users_details ud ON U.ID = ud.user_id 
-                  where u.role_name != 'Admin' AND u.deleted_at IS NULL ORDER BY u.id DESC`;
+        `SELECT
+          u.id,
+          u.user_name,
+          u.first_name,
+          u.last_name,
+          u.email_id,
+          u.mobile_number,
+          ud.address,
+          ud.pin_code,
+          ud.country,
+          ud.state,
+          ud.district,
+          ud.taluk,
+          ud.division,
+          ud.region,
+          ud.company_address,
+          ud.company_name,
+          ud.gst_name,
+          u.role_name,
+          u.is_admin_approve,
+          u.created_at AS registed_at,
+          p.updated_at AS approved_at
+      FROM users u
+      INNER JOIN users_details ud
+          ON u.id = ud.user_id
+      LEFT JOIN (
+          SELECT DISTINCT ON (user_id)
+              user_id,
+              updated_at
+          FROM permissions
+          ORDER BY user_id, updated_at DESC
+      ) p
+          ON u.id = p.user_id
+      WHERE u.role_name <> 'Admin'
+        AND u.deleted_at IS NULL
+      ORDER BY u.id DESC;`;
 
       const result = await pool.query(query);
 
