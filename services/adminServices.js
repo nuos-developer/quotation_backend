@@ -159,10 +159,10 @@ const adminService = {
     },
 
 
-    deleteUserById: async (id, deletedBy) => {
+    deleteUserById: async (deletedBy, id) => {
         try {
 
-            const resp = await dbModel.deleteUserById( id, deletedBy)
+            const resp = await dbModel.deleteUserById(deletedBy, id)
             return resp
 
         } catch (error) {

@@ -133,11 +133,9 @@ const adminController = {
 
        deleteUser: async (req, res) => {
         try {
-            const deletedBy = req.user.id;
-            const id = req.params.id
+            const id = req.user.id;
 
-            console.log('Id:>>>',id);
-            console.log('deleted:>>>>',deletedBy);
+            const deletedBy = req.params.id
 
             const resp = await adminService.deleteUserById(deletedBy, id)
 
