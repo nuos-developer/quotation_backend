@@ -249,84 +249,91 @@ const productModel = {
     },
 
 
-    updateProduct: async (
+updateProduct: async (
+    productId,
+    reqBody,
+    userId
+) => {
 
-        productId,
-        reqBody,
-        userId
+    try {
 
-    ) => {
+        const {
+            product_name,
+            category,
+            mod_size,
+            price,
+            wiring_type_id,
+            zigbee_type
+        } = reqBody;
 
-        try {
+        // Convert wiring_type_id to integer or NULL
+        const wiringTypeId =
+            wiring_type_id !== undefined &&
+            wiring_type_id !== null &&
+            wiring_type_id !== ''
+                ? parseInt(wiring_type_id, 10)
+                : null;
 
-            const {
+        console.log({
+            product_name,
+            category,
+            mod_size,
+            price,
+            wiring_type_id,
+            wiringTypeId,
+            zigbee_type,
+            userId,
+            productId
+        });
 
-                product_name,
-                category,
-                mod_size,
-                price,
-                wiring_type_id,
-                wiring_type,
-                zigbee_type
+        const query = `
+            UPDATE products
+            SET
+                product_name = $1,
+                category = $2,
+                mod_size = $3,
+                price = $4,
+                wiring_type_id = $5,
+                zigbee_type = $6,
+                updated_by = $7,
+                updated_at = NOW()
+            WHERE id = $8
+            RETURNING *;
+        `;
 
-            } = reqBody;
+        const values = [
+            product_name || null,
+            category || null,
+            mod_size || null,
+            price || null,
+            wiringTypeId, // Integer or NULL
+            zigbee_type || null,
+            userId,
+            productId
+        ];
 
-            const query = `
+        console.log("QUERY VALUES >>>>", values);
 
-        UPDATE products
+        const result = await pool.query(
+            query,
+            values
+        );
 
-        SET
+        return {
+            success: true,
+            data: result.rows[0]
+        };
 
-          product_name = $1,
-          category = $2,
-          mod_size = $3,
-          price = $4,
-          wiring_type_id = $5,
-          wiring_type = $6,
-          zigbee_type = $7,
-          updated_by = $8,
-          updated_at = NOW()
+    } catch (error) {
 
-        WHERE id = $9
+        console.error(
+            "Update Product Error >>>>",
+            error
+        );
 
-        RETURNING *;
-      `;
-
-            const values = [
-
-                product_name,
-                category,
-                mod_size,
-                price,
-                wiring_type_id,
-                wiring_type,
-                zigbee_type,
-                userId,
-                productId
-            ];
-
-            const result =
-                await pool.query(
-                    query,
-                    values
-                );
-
-            return {
-
-                success: true,
-
-                data:
-                    result.rows[0]
-            };
-
-        } catch (error) {
-
-            console.error(error);
-
-            throw error;
-        }
-    },
-
+        throw error;
+    }
+},
     // ===================================================
     // INSERT PRODUCT IMAGE
     // ===================================================
