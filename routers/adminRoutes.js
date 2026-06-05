@@ -17,7 +17,7 @@ router.post('/admin_login', validateRequest(adminLoginSchema), adminController.l
 
 router.get('/getUsers', authMiddleware(), adminController.getUsers)
 
-router.delete('/delete_user/:id',authMiddleware(), adminController.deleteUser)
+router.delete('/delete_user/:id', authMiddleware(), adminController.deleteUser)
 
 router.get('/get_client_data', authMiddleware(), adminController.getClientData)
 

@@ -518,7 +518,7 @@ const dbModel = {
     ]);
   },
 // , deleteUserById(deletedBy, id)
- deleteUserById: async (deletedBy, id) => {
+ deleteUserById: async (id, deletedBy) => {
         try {
             const query = `
             UPDATE users u
@@ -528,7 +528,7 @@ const dbModel = {
             WHERE u.id = $2
             RETURNING *;`;
 
-            const result = await pool.query(query, [id, deletedBy]);
+            const result = await pool.query(query, [ deletedBy, id]);
 
             return {
                 success: true,
