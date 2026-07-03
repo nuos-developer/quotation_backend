@@ -135,7 +135,7 @@ const productModel = {
                         wt.wiring_type,
                         p.zigbee_type,
                         p.created_at
-                    ORDER BY p.product_name desc;   -- ✅ MOVED HERE`
+                    ORDER BY p.product_name ASC;   -- ✅ MOVED HERE`
             );
 
             if (!result.rows.length) {
@@ -191,7 +191,7 @@ const productModel = {
                      wt.wiring_type,
                      p.zigbee_type,
                      p.created_at
-                     ORDER BY p.product_name desc; `
+                     ORDER BY p.product_name ASC; `
             );
 
             if (!result.rows.length) {
