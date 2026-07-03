@@ -316,6 +316,68 @@ const dbModel = {
     }
   },
 
+  getClientByUserId: async (userId) => {
+    try {
+
+      const query = `
+      SELECT 
+          c.id,
+          c.client_id,
+          c.user_id,
+          r.role_name,
+          u.role_id,
+          u.user_name,
+
+          c.first_name,
+          c.last_name,
+          c.mobile_number,
+          c.email_id,
+
+          c.address_line_one,
+          c.address_line_two,
+          c.pin_code,
+          c.country,
+          c.state,
+          c.district,
+          c.taluk,
+          c.division,
+          c.region,
+
+          c.company_name,
+          c.company_address,
+          c.gst,
+          c.salesrepincharge,
+          c.installation_rep_in_charge,
+          c.lead_source,
+          c.date_of_installation,
+          c.site_contractor_name,
+          c.site_contractor_phone,
+          c.architect_name,
+          c.architect_phone
+
+      FROM clients c
+      INNER JOIN users u
+          ON c.user_id = u.id
+      INNER JOIN roles r
+          ON r.id = u.role_id
+      WHERE c.deleted_by IS NULL
+        AND c.user_id = $1
+      ORDER BY u.id DESC;
+    `;
+
+      const result = await pool.query(query, [userId]);
+
+      return {
+        success: true,
+        data: result.rows,
+      };
+
+    } catch (error) {
+      console.error("Error fetching client by userId:", error);
+      throw error;
+    }
+  },
+
   logOutUser: async (userId) => {
     try {
       const query = `
@@ -517,10 +579,10 @@ const dbModel = {
       module_id
     ]);
   },
-// , deleteUserById(deletedBy, id)
- deleteUserById: async (deletedBy, id) => {
-        try {
-            const query = `
+  // , deleteUserById(deletedBy, id)
+  deleteUserById: async (deletedBy, id) => {
+    try {
+      const query = `
             UPDATE users u
             SET 
                 deleted_by = $1,
@@ -528,22 +590,22 @@ const dbModel = {
             WHERE u.id = $2
             RETURNING *;`;
 
-            const result = await pool.query(query, [id, deletedBy]);
+      const result = await pool.query(query, [id, deletedBy]);
 
-            return {
-                success: true,
-                data: result.rows[0],
-            };
+      return {
+        success: true,
+        data: result.rows[0],
+      };
 
-        } catch (error) {
-            console.error('Error deleting proposal details:', error);
-            return {
-                success: false,
-                message: 'Failed to delete proposal details',
-                error: error.message,
-            };
-        }
-    },
+    } catch (error) {
+      console.error('Error deleting proposal details:', error);
+      return {
+        success: false,
+        message: 'Failed to delete proposal details',
+        error: error.message,
+      };
+    }
+  },
 
 
 };

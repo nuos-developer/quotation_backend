@@ -12,78 +12,78 @@ const { notificationType } = require('../constants/notificationTypeConstant')
 const { notificationModel } = require('../models/notificationModel')
 
 const adminService = {
-   registerAdmin: async (reqBody) => {
-  try {
+    registerAdmin: async (reqBody) => {
+        try {
 
-    /* ---------- CHECK DUPLICATE ---------- */
-    const existingUser = await dbModel.checkUserByMobNum(
-      reqBody.mobile_number,
-      reqBody.email_id
-    );
+            /* ---------- CHECK DUPLICATE ---------- */
+            const existingUser = await dbModel.checkUserByMobNum(
+                reqBody.mobile_number,
+                reqBody.email_id
+            );
 
-    if (existingUser) {
-      return {
-        success: false,
-        message: 'Mobile Number OR Email already registered'
-      };
-    }
+            if (existingUser) {
+                return {
+                    success: false,
+                    message: 'Mobile Number OR Email already registered'
+                };
+            }
 
-    /* ---------- HASH PASSWORD ---------- */
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(reqBody.password, salt);
+            /* ---------- HASH PASSWORD ---------- */
+            const salt = await bcrypt.genSalt(10);
+            const hashedPassword = await bcrypt.hash(reqBody.password, salt);
 
-    /* ---------- REGISTER USER ---------- */
-    const user = await dbModel.register(reqBody, salt, hashedPassword);
+            /* ---------- REGISTER USER ---------- */
+            const user = await dbModel.register(reqBody, salt, hashedPassword);
 
-    if (!user || !user.id) {
-      throw new Error('User registration failed');
-    }
+            if (!user || !user.id) {
+                throw new Error('User registration failed');
+            }
 
-    /* ---------- EMAIL ---------- */
-    const userFullName = `${reqBody.first_name} ${reqBody.last_name}`;
+            /* ---------- EMAIL ---------- */
+            const userFullName = `${reqBody.first_name} ${reqBody.last_name}`;
 
-    const subject = `New User Role Request – ${userFullName}`;
+            const subject = `New User Role Request – ${userFullName}`;
 
-    const emailHtml = generateAdminRoleRequestTemplate(
-      userFullName,
-      reqBody.email_id,
-      reqBody.mobile_number,
-      reqBody.role_name
-    );
+            const emailHtml = generateAdminRoleRequestTemplate(
+                userFullName,
+                reqBody.email_id,
+                reqBody.mobile_number,
+                reqBody.role_name
+            );
 
-    const emailSent = await sendEmailWithCustomFrom(
-      reqBody.email_id,
-      process.env.ADMIN_EMAIL,
-      subject,
-      emailHtml
-    );
+            const emailSent = await sendEmailWithCustomFrom(
+                reqBody.email_id,
+                process.env.ADMIN_EMAIL,
+                subject,
+                emailHtml
+            );
 
-    if (emailSent) {
-      await notificationModel.insertEmailbyUserId(
-        reqBody.email_id,
-        subject,
-        emailHtml,
-        user.id,
-        notificationType.NEW_USER_ROLE_REQUEST
-      );
-    }
+            if (emailSent) {
+                await notificationModel.insertEmailbyUserId(
+                    reqBody.email_id,
+                    subject,
+                    emailHtml,
+                    user.id,
+                    notificationType.NEW_USER_ROLE_REQUEST
+                );
+            }
 
-    return {
-      success: true,
-      message: 'User registered successfully. Request sent to admin.',
-      data: user
-    };
+            return {
+                success: true,
+                message: 'User registered successfully. Request sent to admin.',
+                data: user
+            };
 
-  } catch (error) {
-    console.error('Error registering user:', error);
+        } catch (error) {
+            console.error('Error registering user:', error);
 
-    return {
-      success: false,
-      message: 'Failed to register user',
-      error: error.message
-    };
-  }
-},
+            return {
+                success: false,
+                message: 'Failed to register user',
+                error: error.message
+            };
+        }
+    },
 
     verifyOtp: async (otpId, otpInput) => {
         try {
@@ -189,6 +189,25 @@ const adminService = {
             return {
                 success: false,
                 message: 'Failed To Client User fatch',
+                error: error.message,
+            };
+        }
+    },
+
+    getClientByUserId: async (userId) => {
+        try {
+            const resp = await dbModel.getClientByUserId(userId);
+
+            return {
+                success: true,
+                message: 'Get Client sucesfull ',
+                data: resp.data || resp,
+            };
+
+        } catch (error) {
+            return {
+                success: false,
+                message: 'Failed To Client fatch',
                 error: error.message,
             };
         }

@@ -43,6 +43,8 @@ router.get('/product/getproposal', authMiddleware(), productController.getPropos
 
 router.get('/product/getproposalById/:id', authMiddleware(), productController.getProposalDataById)
 
+router.get('/product/getproposalByClientId/:client_id', authMiddleware(), productController.getProposalDataByClientId)
+
 router.delete('/product/delete_proposal/:id', authMiddleware(), productController.deleteProposalById)
 
 module.exports = router;

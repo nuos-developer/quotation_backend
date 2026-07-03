@@ -160,6 +160,17 @@ const adminController = {
             res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: HttpMessage.INTERNAL_SERVER_ERROR });
         }
     },
+    getClientByUserId: async (req, res) => {
+        try {
+            const userId = req.user.id
+            const result = await adminService.getClientByUserId(userId)
+            res.status(HttpStatus.CREATED).json({ message: result.message, data: result.data, });
+
+        } catch (error) {
+            console.error('Error in ("getClientByUserId"):', error);
+            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: HttpMessage.INTERNAL_SERVER_ERROR });
+        }
+    },
 
     logoutUser: async (req, res) => {
         try {

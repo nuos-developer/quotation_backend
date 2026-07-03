@@ -108,7 +108,7 @@ const productService = {
         if (files && files.length > 0) {
 
             // Optional:
-            // await productModel.deleteProductImages(productId);
+            await productModel.deleteProductImages(productId);
 
             for (const file of files) {
 
@@ -232,7 +232,6 @@ const productService = {
         try {
 
             const resp = await productModel.getProposalData(userId)
-            // console.log('resp :>>>>>>>>>', resp);
 
             return resp;
         } catch (error) {
@@ -248,7 +247,22 @@ const productService = {
         try {
 
             const resp = await productModel.getProposalDataById(proposalId, userId)
-            console.log('resp :>>>>>>>>', resp);
+
+            return resp;
+        } catch (error) {
+            console.error('Error fatch proposal:', error);
+            return {
+                success: false,
+                message: 'Failed to get proposal "getProposalDataById"',
+                error: error.message,
+            };
+        }
+    },
+
+    getProposalDataByClientId: async (clientId, userId) => {
+        try {
+
+            const resp = await productModel.getProposalDataByClientId(clientId, userId)
 
             return resp;
         } catch (error) {

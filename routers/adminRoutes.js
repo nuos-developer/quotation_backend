@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const validateRequest = require('../middleware/validateRequest');
-const { adminRegisterSchema, adminLoginSchema, rolePermission} = require('../validations/validators');
+const { adminRegisterSchema, adminLoginSchema, rolePermission } = require('../validations/validators');
 const adminController = require('../controllers/adminController');
 const commController = require('../common/commonControllers');
 const authMiddleware = require('../middleware/authMiddleware');
@@ -11,15 +11,17 @@ router.post('/register', adminController.register);
 
 router.post('/verify_email', commController.verifyEmail);
 
-router.put('/verify/:otpId',adminController.verifyOtp)
+router.put('/verify/:otpId', adminController.verifyOtp)
 
-router.post('/admin_login', validateRequest(adminLoginSchema), adminController.login);  
+router.post('/admin_login', validateRequest(adminLoginSchema), adminController.login);
 
 router.get('/getUsers', authMiddleware(), adminController.getUsers)
 
 router.delete('/delete_user/:id', authMiddleware(), adminController.deleteUser)
 
 router.get('/get_client_data', authMiddleware(), adminController.getClientData)
+
+router.get('/get_clients_by_userId', authMiddleware(), adminController.getClientByUserId)
 
 router.post('/logout', authMiddleware(), adminController.logoutUser)
 
@@ -31,7 +33,7 @@ router.get('/roles', authMiddleware(), commController.getRoles)
 router.post(
   '/assign_access',
   authMiddleware(),
-//   validateRequest(rolePermission),
+  //   validateRequest(rolePermission),
   adminController.assignPartnerAccess
 );
 
