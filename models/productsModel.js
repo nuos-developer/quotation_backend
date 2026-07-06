@@ -989,10 +989,16 @@ const productModel = {
                     LEFT JOIN roles r ON r.id = u.role_id  
 
                     /* ================= FILTER ================= */
-                     WHERE p.created_by = $1 and p.deleted_at IS NULL;`, [userId]
-                    // WHERE p.deleted_at IS NULL;
+                     WHERE
+                        (
+                            ($1 = 22 AND p.created_by = 22)
+                            OR
+                            ($1 <> 22 AND p.created_by <> 22)
+                        )
+                        AND p.deleted_at IS NULL;`, [userId]
+                // WHERE p.deleted_at IS NULL;
 
-                );
+            );
 
             if (!result.rows.length) {
                 return {

@@ -263,8 +263,7 @@ const dbModel = {
     try {
       // const { } = reqBody
       const query =
-        `
-          SELECT 
+        `SELECT 
               c.id,
               c.client_id,
               c.user_id,
