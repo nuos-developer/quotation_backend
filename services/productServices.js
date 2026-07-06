@@ -90,6 +90,19 @@ const productService = {
         }
     },
 
+    getCategoryType: async () => {
+        try {
+            const resp = await productModel.getCategoryType()
+            return resp;
+        } catch (error) {
+            return {
+                success: false,
+                message: 'Failed To Get Wire',
+                error: error.message,
+            };
+        }
+    },
+
     updateProduct: async (
         req,
         productId,

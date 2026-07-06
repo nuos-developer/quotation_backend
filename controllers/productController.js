@@ -97,6 +97,17 @@ const productController = {
         }
     },
 
+    getCategoryType: async (req, res) => {
+        try {
+
+            const userId = req.user.id
+            const resp = await productService.getCategoryType(userId)
+            res.status(HttpStatus.CREATED).json({ resp });
+        } catch (error) {
+            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: HttpMessage.INTERNAL_SERVER_ERROR });
+        }
+    },
+
     updateProduct: async (req, res) => {
 
         try {

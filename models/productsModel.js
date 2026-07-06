@@ -244,6 +244,34 @@ const productModel = {
         }
     },
 
+    getCategoryType: async () => {
+        try {
+            const result = await pool.query(
+                `SELECT id, category_type FROM category_types ; `
+            );
+
+            if (!result.rows.length) {
+                return {
+                    success: false,
+                    message: 'wire data found',
+                    data: null,
+                };
+            }
+            return {
+                success: true,
+                message: 'wire data fatch successfully',
+                data: result.rows,
+            };
+        } catch (error) {
+            console.error('Error fetching wire info:', error);
+            return {
+                success: false,
+                message: 'Failed to fetch wire Data',
+                error: error.message,
+            };
+        }
+    },
+
 
     updateProduct: async (
         productId,
@@ -961,9 +989,10 @@ const productModel = {
                     LEFT JOIN roles r ON r.id = u.role_id  
 
                     /* ================= FILTER ================= */
-                    WHERE p.deleted_at IS NULL;
+                     WHERE p.created_by = $1 and p.deleted_at IS NULL;`, [userId]
+                    // WHERE p.deleted_at IS NULL;
 
-                `);
+                );
 
             if (!result.rows.length) {
                 return {
