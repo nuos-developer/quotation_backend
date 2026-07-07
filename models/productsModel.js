@@ -120,6 +120,8 @@ const productModel = {
                         p.price,
                         wt.id AS wiring_type_id,
                         wt.wiring_type,
+                        p.category_id,
+                        ct.category_type,
                         p.zigbee_type,
                         p.switch_load_count,
                         p.description,
@@ -128,6 +130,7 @@ const productModel = {
                     FROM products p
                     INNER JOIN wiring_types wt  
                         ON p.wiring_type_id = wt.id
+                    LEFT JOIN category_types ct ON ct.id = p.category_id 
                     LEFT JOIN product_images t 
                         ON t.product_id = p.id 
                         AND t.is_active = true
@@ -140,9 +143,10 @@ const productModel = {
                         p.price,
                         wt.id,
                         wt.wiring_type,
+                        ct.category_type,
                         p.zigbee_type,
                         p.created_at
-                    ORDER BY p.product_name ASC;   -- ✅ MOVED HERE`
+                    ORDER BY p.product_name ASC  -- ✅ MOVED HERE`
             );
 
             if (!result.rows.length) {
@@ -179,11 +183,14 @@ const productModel = {
                     -- wt.wiring_type_id ,
                      wt.wiring_type,
                      p.zigbee_type,
+                     p.category_id,
+                     ct.category_type,
                      p.created_at,
                      ARRAY_AGG(t.image_url) AS image_urls
                  FROM products p
                  INNER JOIN wiring_types wt  
                      ON p.wiring_type_id = wt.id
+                 LEFT JOIN category_types ct ON ct.id = p.category_id 
                  LEFT JOIN product_images t 
                      ON t.product_id = p.id 
                      AND t.is_active = true
@@ -196,6 +203,7 @@ const productModel = {
                      p.price,
                      wt.id,
                      wt.wiring_type,
+                     ct.category_type,
                      p.zigbee_type,
                      p.created_at
                      ORDER BY p.product_name ASC; `
