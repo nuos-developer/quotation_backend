@@ -12,7 +12,10 @@ const productModel = {
                 wiring_type_id,
                 wiring_type,
                 zigbee_type,
+                switch_load_count,
+                description
             } = reqBody;
+            
 
             // ✅ convert wiring_type_id to integer
             // const wiring_type_id = parseInt(reqBody.wiring_type_id, 10);
@@ -24,8 +27,8 @@ const productModel = {
 
             const query = `
       INSERT INTO products 
-      (user_id, product_name, category, mod_size, price, wiring_type_id, wiring_type, zigbee_type, created_by)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8, $9)
+      (user_id, product_name, category, mod_size, price, wiring_type_id, wiring_type, zigbee_type, created_by, switch_load_count, description)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8, $9, $10, $11)
       RETURNING id;
     `;
 
@@ -38,7 +41,9 @@ const productModel = {
                 wiring_type_id || null, // ✅ integer now
                 wiring_type,
                 zigbee_type,
-                userId
+                userId,
+                switch_load_count,
+                description
             ];
 
             const result = await pool.query(query, values);
@@ -116,6 +121,8 @@ const productModel = {
                         wt.id AS wiring_type_id,
                         wt.wiring_type,
                         p.zigbee_type,
+                        p.switch_load_count,
+                        p.description,
                         p.created_at,
                         ARRAY_AGG(t.image_url) FILTER (WHERE t.image_url IS NOT NULL) AS image_urls
                     FROM products p

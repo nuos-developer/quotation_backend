@@ -15,7 +15,7 @@ router.post(
   productController.addProduct
 );
 
-router.post('product/addmoreProduct', authMiddleware(), productController.addMoreProduct)
+// router.post('product/addmoreProduct', authMiddleware(), productController.addMoreProduct)
 
 router.get('/product/getProduct', authMiddleware(), productController.getProduct)
 
