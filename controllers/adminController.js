@@ -4,7 +4,7 @@ const { HttpStatus } = require('../constants/httpStatusCodeConstant');
 const { HttpMessage } = require('../constants/httpStatusMessageConstant');
 
 const generateToken = (id) =>
-    jwt.sign({ id, role: 'admin' }, process.env.JWT_SECRET, { expiresIn: '1d' });
+    jwt.sign({ id, role: 'admin' }, process.env.JWT_SECRET, { expiresIn: '15d' });
 
 const adminController = {
     register: async (req, res) => {

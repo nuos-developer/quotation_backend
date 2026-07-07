@@ -4,7 +4,7 @@ const { HttpStatus } = require('../constants/httpStatusCodeConstant');
 const { HttpMessage } = require('../constants/httpStatusMessageConstant');
 
 const generateToken = (id) =>
-    jwt.sign({ id, role: 'user' }, process.env.JWT_SECRET, { expiresIn: '1d' });
+    jwt.sign({ id, role: 'user' }, process.env.JWT_SECRET, { expiresIn: '15d' });
 
 const userController = {
     login: async (req, res) => {
