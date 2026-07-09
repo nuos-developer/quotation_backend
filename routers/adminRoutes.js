@@ -51,6 +51,12 @@ router.get(
   adminController.getDashboard
 );
 
+router.get(
+  '/dashboard/graph',
+  authMiddleware(),
+  adminController.getDashboardGraphCount
+);
+
 
 
 

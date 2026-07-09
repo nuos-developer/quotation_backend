@@ -512,50 +512,247 @@ const dbModel = {
 
   getDashboardCounts: async () => {
 
-    const roleWiseQuery = `
-    SELECT
-      r.role_name, r.id,
-      COUNT(u.id) AS total_users,
-      COUNT(CASE WHEN u.is_admin_approve = 'PENDING' THEN 1 END) AS pending_users,
-      COUNT(CASE WHEN u.is_admin_approve = 'APPROVED' THEN 1 END) AS approved_users
-    FROM roles r
-    LEFT JOIN users u
+    try {
+
+      // ================= Role Wise Users =================
+      const roleWiseQuery = `
+      SELECT
+        r.id,
+        r.role_name,
+
+        COUNT(u.id) AS total_users,
+
+        COUNT(
+          CASE
+            WHEN u.is_admin_approve = 'APPROVED'
+            THEN 1
+          END
+        ) AS approved_users,
+
+        COUNT(
+          CASE
+            WHEN u.is_admin_approve = 'PENDING'
+            THEN 1
+          END
+        ) AS pending_users
+
+      FROM roles r
+
+      LEFT JOIN users u
       ON u.role_id = r.id
-     AND u.deleted_by IS NULL
-    WHERE r.role_name <> 'Admin'
-    GROUP BY r.id, r.role_name
-    ORDER BY r.id ASC;
-  `;
+      AND u.deleted_by IS NULL
 
-    const productProposalQuery = `
-    SELECT
-      (SELECT COUNT(*) FROM products WHERE deleted_by IS NULL) AS total_products,
+      WHERE r.role_name <> 'Admin'
 
-      (SELECT COUNT(*) FROM products 
-       WHERE is_active = true AND deleted_by IS NULL) AS active_products,
+      GROUP BY
+        r.id,
+        r.role_name
 
-      (SELECT COUNT(*) FROM products 
-       WHERE is_active = false AND deleted_by IS NULL) AS inactive_products,
+      ORDER BY r.id;
+    `;
 
-      (SELECT COUNT(*) FROM proposals 
-       WHERE deleted_by IS NULL) AS total_proposals,
 
-      -- ✅ CLIENT COUNT
-      (SELECT COUNT(*) FROM clients 
-       WHERE deleted_by IS NULL) AS total_clients;
-  `;
+      // ================= Summary =================
+      const summaryQuery = `
+      SELECT
 
-    const [roleResult, productResult] = await Promise.all([
-      pool.query(roleWiseQuery),
-      pool.query(productProposalQuery)
-    ]);
+      (
+        SELECT COUNT(*)
+        FROM products
+        WHERE deleted_by IS NULL
+      ) AS total_products,
 
-    return {
-      roleWiseUsers: roleResult.rows,
-      summary: productResult.rows[0]
-    };
+      (
+        SELECT COUNT(*)
+        FROM products
+        WHERE
+          is_active = TRUE
+          AND deleted_by IS NULL
+      ) AS active_products,
+
+      (
+        SELECT COUNT(*)
+        FROM products
+        WHERE
+          is_active = FALSE
+          AND deleted_by IS NULL
+      ) AS inactive_products,
+
+      (
+        SELECT COUNT(*)
+        FROM proposals
+        WHERE deleted_by IS NULL
+      ) AS total_proposals,
+
+      (
+        SELECT COUNT(*)
+        FROM clients
+        WHERE deleted_by IS NULL
+      ) AS total_clients;
+    `;
+
+
+      const [
+        roleResult,
+        summaryResult,
+      ] = await Promise.all([
+
+        pool.query(roleWiseQuery),
+
+        pool.query(summaryQuery),
+
+      ]);
+
+
+      return {
+
+        summary: summaryResult.rows[0],
+
+        roleWiseUsers: roleResult.rows,
+
+      };
+
+    } catch (error) {
+
+      console.log(error);
+
+      throw error;
+    }
   },
 
+  getDashboardGraph: async (graph) => {
+
+
+    try {
+
+      let proposalGraphQuery = "";
+
+      switch (graph) {
+
+        case "day":
+
+          proposalGraphQuery = `
+                    SELECT
+                        TO_CHAR(created_at,'DD Mon YYYY') AS label,
+                        COUNT(*)::INT AS proposal_count
+                    FROM proposals
+                    WHERE deleted_at IS NULL
+                    GROUP BY DATE(created_at),TO_CHAR(created_at,'DD Mon YYYY')
+                    ORDER BY DATE(created_at);
+                `;
+          break;
+
+        case "week":
+
+          proposalGraphQuery = `
+                    SELECT
+                        CONCAT(
+                            EXTRACT(YEAR FROM created_at),
+                            ' - Week ',
+                            EXTRACT(WEEK FROM created_at)
+                        ) AS label,
+
+                        COUNT(*)::INT AS proposal_count,
+
+                        MIN(created_at) sort_date
+
+                    FROM proposals
+
+                    WHERE deleted_at IS NULL
+
+                    GROUP BY
+                        EXTRACT(YEAR FROM created_at),
+                        EXTRACT(WEEK FROM created_at)
+
+                    ORDER BY sort_date;
+                `;
+          break;
+
+        case "month":
+
+          proposalGraphQuery = `
+                    SELECT
+
+                        TO_CHAR(created_at,'Mon YYYY') AS label,
+
+                        COUNT(*)::INT AS proposal_count,
+
+                        DATE_TRUNC('month',created_at) sort_date
+
+                    FROM proposals
+
+                    WHERE deleted_at IS NULL
+
+                    GROUP BY
+                        DATE_TRUNC('month',created_at),
+                        TO_CHAR(created_at,'Mon YYYY')
+
+                    ORDER BY sort_date;
+                `;
+          break;
+
+        case "year":
+
+          proposalGraphQuery = `
+                    SELECT
+
+                        EXTRACT(YEAR FROM created_at)::TEXT AS label,
+
+                        COUNT(*)::INT AS proposal_count
+
+                    FROM proposals
+
+                    WHERE deleted_at IS NULL
+
+                    GROUP BY EXTRACT(YEAR FROM created_at)
+
+                    ORDER BY EXTRACT(YEAR FROM created_at);
+                `;
+          break;
+
+        default:
+
+          proposalGraphQuery = `
+                    SELECT
+
+                        TO_CHAR(created_at,'Mon YYYY') AS label,
+
+                        COUNT(*)::INT AS proposal_count,
+
+                        DATE_TRUNC('month',created_at) sort_date
+
+                    FROM proposals
+
+                    WHERE deleted_at IS NULL
+
+                    GROUP BY
+                        DATE_TRUNC('month',created_at),
+                        TO_CHAR(created_at,'Mon YYYY')
+
+                    ORDER BY sort_date;
+                `;
+      }
+
+      const [
+        proposalGraphResult
+      ] = await Promise.all([
+        pool.query(proposalGraphQuery)
+
+      ]);
+
+      return {
+        proposalGraph: proposalGraphResult.rows
+
+      };
+
+    } catch (error) {
+
+      console.log(error);
+
+      throw error;
+
+    }
+  },
 
   updateUserPermission: async (data, userId) => {
     const { module_id, permissions } = data;

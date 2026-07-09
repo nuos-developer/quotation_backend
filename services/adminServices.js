@@ -9,7 +9,8 @@ const { generateAccessGrantedEmailTemplate, generateAdminRoleRequestTemplate } =
 const { sendEmailWithCustomFrom } = require('../utils/nodeMailer')
 const { canManage } = require('../utils/roleHierarchy');
 const { notificationType } = require('../constants/notificationTypeConstant')
-const { notificationModel } = require('../models/notificationModel')
+const { notificationModel } = require('../models/notificationModel');
+const { getDashboardGraph } = require('../controllers/adminController');
 
 const adminService = {
     registerAdmin: async (reqBody) => {
@@ -291,6 +292,17 @@ const adminService = {
         return {
             success: true,
             message: 'Admin dashboard data fetched successfully',
+            data
+        };
+    },
+
+
+    getDashboardGraphCount: async (graph) => {
+        const data = await dbModel.getDashboardGraph(graph);
+
+        return {
+            success: true,
+            message: 'Admin dashboard count fetched successfully',
             data
         };
     },

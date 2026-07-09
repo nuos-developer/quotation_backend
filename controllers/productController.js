@@ -221,7 +221,7 @@ const productController = {
         try {
             const reqBody = req.body
             const userId = req.user.id
-            // console.log('req.user.id:>>>>>>>>>>>>>>>', req.user.id);
+            console.log('req.user.id:>>>>>>>>>>>>>>>', req.user.id);
             const resp = await productService.getProposalData(userId)
             res.status(HttpStatus.CREATED).json({
                 data: resp

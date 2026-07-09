@@ -8,24 +8,24 @@ const generateToken = (id) =>
 
 const adminController = {
     register: async (req, res) => {
-  try {
-    const resp = await adminService.registerAdmin(req.body);
+        try {
+            const resp = await adminService.registerAdmin(req.body);
 
-    if (!resp.success) {
-      return res.status(400).json(resp);
-    }
+            if (!resp.success) {
+                return res.status(400).json(resp);
+            }
 
-    res.status(201).json(resp);
+            res.status(201).json(resp);
 
-  } catch (err) {
-    console.error(err);
+        } catch (err) {
+            console.error(err);
 
-    res.status(500).json({
-      success: false,
-      message: 'Internal Server Error'
-    });
-  }
-},
+            res.status(500).json({
+                success: false,
+                message: 'Internal Server Error'
+            });
+        }
+    },
 
     verifyOtp: async (req, res) => {
         try {
@@ -131,7 +131,7 @@ const adminController = {
         }
     },
 
-       deleteUser: async (req, res) => {
+    deleteUser: async (req, res) => {
         try {
             const id = req.user.id;
 
@@ -225,6 +225,21 @@ const adminController = {
             });
         }
     },
+
+    getDashboardGraphCount: async (req, res) => {
+        try {
+            const graph = req.query.graph || 'month';
+            const result = await adminService.getDashboardGraphCount(graph);
+            res.status(HttpStatus.OK).json(result);
+        } catch (error) {
+            console.error('Dashboard error:', error);
+            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+                success: false,
+                message: 'Failed to fetch dashboard data'
+            });
+        }
+    },
+
 
     updateUserPermission: async (req, res) => {
         const result = await adminService.updateUserPermission(req.body, req.params.userId);

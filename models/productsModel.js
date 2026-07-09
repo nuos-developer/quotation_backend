@@ -1004,16 +1004,7 @@ const productModel = {
                     LEFT JOIN clients c ON c.id = p.client_id  
                     LEFT JOIN users u ON u.id = p.created_by    
                     LEFT JOIN roles r ON r.id = u.role_id
-
-/* ================= FILTER ================= */
-WHERE
-    (
-        ($1 = 22 AND p.created_by = 22)
-OR
-    ($1 <> 22 AND p.created_by <> 22)
-                        )
-                        AND p.deleted_at IS NULL; `, [userId]
-                // WHERE p.deleted_at IS NULL;
+                    WHERE p.deleted_at IS NULL;`
 
             );
 
@@ -1040,7 +1031,7 @@ OR
 
             const result = await pool.query(
                 `SELECT
-p.id,
+    p.id,
     p.proposal_id,
     p.proposal_type,
     p.created_at,
