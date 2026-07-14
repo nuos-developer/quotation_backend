@@ -17,6 +17,8 @@ router.post('/admin_login', validateRequest(adminLoginSchema), adminController.l
 
 router.get('/getUsers', authMiddleware(), adminController.getUsers)
 
+router.get('/getUsersName', authMiddleware(), adminController.getUsersName)
+
 router.delete('/delete_user/:id', authMiddleware(), adminController.deleteUser)
 
 router.get('/get_client_data', authMiddleware(), adminController.getClientData)
@@ -37,6 +39,8 @@ router.post(
   adminController.assignPartnerAccess
 );
 
+router.post('/proposal/assign', authMiddleware(), adminController.assignProposal)
+
 router.get(
   '/permissions/:userId',
   authMiddleware(),
@@ -56,6 +60,7 @@ router.get(
   authMiddleware(),
   adminController.getDashboardGraphCount
 );
+
 
 
 

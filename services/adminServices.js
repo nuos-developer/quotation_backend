@@ -159,6 +159,25 @@ const adminService = {
         }
     },
 
+    getUsersName: async () => {
+        try {
+            const resp = await dbModel.getUsersName();
+
+            return {
+                success: true,
+                message: 'Get User Name sucesfull ',
+                data: resp.data || resp,
+            };
+
+        } catch (error) {
+            return {
+                success: false,
+                message: 'Failed To User Name fatch',
+                error: error.message,
+            };
+        }
+    },
+
 
     deleteUserById: async (deletedBy, id) => {
         try {
@@ -269,6 +288,28 @@ const adminService = {
             console.error(error)
         }
 
+
+    },
+
+
+    assignProposal: async (reqBody, admin) => {
+
+        const {
+            proposal_id,
+            assigned_to,
+            can_view,
+            can_update,
+            can_delete
+        } = reqBody;
+
+        return await dbModel.assignProposal({
+            proposal_id,
+            assigned_to,
+            can_view,
+            can_update,
+            can_delete,
+            assigned_by: admin.id
+        });
 
     },
 

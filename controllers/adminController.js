@@ -131,6 +131,18 @@ const adminController = {
         }
     },
 
+    getUsersName: async (req, res) => {
+        try {
+            const adminId = req.user.id
+            const result = await adminService.getUsersName()
+            res.status(HttpStatus.CREATED).json({ message: result.message, data: result.data, });
+
+        } catch (error) {
+            console.error('Error in ("getUsersName"):', error);
+            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: HttpMessage.INTERNAL_SERVER_ERROR });
+        }
+    },
+
     deleteUser: async (req, res) => {
         try {
             const id = req.user.id;
@@ -182,6 +194,20 @@ const adminController = {
         } catch (error) {
             console.error('Error in ("logoutUser"):', error);
             res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: HttpMessage.INTERNAL_SERVER_ERROR });
+        }
+    },
+
+    assignProposal: async (req, res) => {
+        try {
+            const admin = req.user;
+            const result = await adminService.assignProposal(req.body, admin);
+            res.status(HttpStatus.CREATED).json({
+                success: true,
+                message: 'Permission assigned successfully',
+                data: result
+            });
+        } catch (err) {
+            res.status(500).json({ success: false, message: err.message });
         }
     },
 

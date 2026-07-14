@@ -259,6 +259,42 @@ const dbModel = {
     }
   },
 
+  getUsersName: async () => {
+    try {
+      // const { } = reqBody
+      const query =
+        `SELECT
+          u.id,
+          u.user_name
+         
+      FROM users u
+      INNER JOIN users_details ud
+          ON u.id = ud.user_id
+      LEFT JOIN (
+          SELECT DISTINCT ON (user_id)
+              user_id,
+              updated_at
+          FROM permissions
+          ORDER BY user_id, updated_at DESC
+      ) p
+          ON u.id = p.user_id
+      WHERE u.role_name <> 'Admin'
+        AND u.deleted_at IS NULL
+      ORDER BY u.id DESC;`;
+
+      const result = await pool.query(query);
+
+      return {
+        success: true,
+        data: result.rows,
+      };
+
+    } catch (error) {
+      console.error('Error finding admin by email:', error);
+      throw error;
+    }
+  },
+
   getClientData: async () => {
     try {
       // const { } = reqBody
@@ -467,6 +503,57 @@ const dbModel = {
     } catch (error) {
       console.error('Error updating login status:', error);
       throw error; // rethrow if you want to handle it higher
+    }
+  },
+
+  assignProposal: async (data) => {
+    try {
+      const checkQuery = `
+            SELECT id
+            FROM proposal_assignments
+            WHERE proposal_id = $1
+            AND assigned_to = $2
+        `;
+      const check = await pool.query(checkQuery, [
+        data.proposal_id,
+        data.assigned_to
+      ]);
+      if (check.rows.length > 0) {
+        throw new Error("Proposal already assigned.");
+      }
+      const insertQuery = `
+            INSERT INTO proposal_assignments
+            (
+                proposal_id,
+                assigned_to,
+                can_view,
+                can_update,
+                can_delete,
+                assigned_by
+            )
+            VALUES
+            (
+                $1,
+                $2,
+                $3,
+                $4,
+                $5,
+                $6
+            )
+            RETURNING *
+        `;
+
+      const result = await pool.query(insertQuery, [
+        data.proposal_id,
+        data.assigned_to,
+        data.can_view,
+        data.can_update,
+        data.can_delete,
+        data.assigned_by
+      ]);
+      return result.rows[0];
+    } catch (err) {
+      throw err;
     }
   },
 
