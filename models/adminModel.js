@@ -395,9 +395,18 @@ const dbModel = {
           ON c.user_id = u.id
       INNER JOIN roles r
           ON r.id = u.role_id
-      WHERE c.deleted_by IS NULL
-        AND c.user_id = $1
-      ORDER BY u.id DESC;
+       WHERE
+          c.deleted_by IS NULL
+          AND
+          (
+              $1 IN (3,16,17,18,19,20,21)
+
+              OR
+
+              c.user_id = $1
+          )
+
+      ORDER BY c.id DESC;
     `;
 
       const result = await pool.query(query, [userId]);
