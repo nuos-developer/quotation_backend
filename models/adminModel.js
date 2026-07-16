@@ -399,7 +399,7 @@ const dbModel = {
           c.deleted_by IS NULL
           AND
           (
-              $1 IN (3,16,17,18,19,20,21)
+              $1 IN (3,16,17,18,19,20,21, 23)
 
               OR
 
