@@ -355,58 +355,56 @@ const dbModel = {
     try {
 
       const query = `
-      SELECT 
-          c.id,
-          c.client_id,
-          c.user_id,
-          r.role_name,
-          u.role_id,
-          u.user_name,
+             SELECT DISTINCT
+            c.id,
+            c.client_id,
+            c.user_id,
+            r.role_name,
+            u.role_id,
+            u.user_name,
+            c.first_name,
+            c.last_name,
+            c.mobile_number,
+            c.email_id,
+            c.address_line_one,
+            c.address_line_two,
+            c.pin_code,
+            c.country,
+            c.state,
+            c.district,
+            c.taluk,
+            c.division,
+            c.region,
+            c.company_name,
+            c.company_address,
+            c.gst,
+            c.salesrepincharge,
+            c.installation_rep_in_charge,
+            c.lead_source,
+            c.date_of_installation,
+            c.site_contractor_name,
+            c.site_contractor_phone,
+            c.architect_name,
+            c.architect_phone
 
-          c.first_name,
-          c.last_name,
-          c.mobile_number,
-          c.email_id,
+        FROM clients c
+        INNER JOIN users u
+            ON c.user_id = u.id
+        INNER JOIN roles r
+            ON r.id = u.role_id
+        WHERE
+            c.deleted_by IS NULL
+            AND EXISTS (
+                SELECT 1
+                FROM proposals p
+                WHERE p.client_id = c.id
+            )
+            AND (
+                $1 IN (3,16,17,18,19,20,21,23)
+                OR c.user_id = $1
+            )
 
-          c.address_line_one,
-          c.address_line_two,
-          c.pin_code,
-          c.country,
-          c.state,
-          c.district,
-          c.taluk,
-          c.division,
-          c.region,
-
-          c.company_name,
-          c.company_address,
-          c.gst,
-          c.salesrepincharge,
-          c.installation_rep_in_charge,
-          c.lead_source,
-          c.date_of_installation,
-          c.site_contractor_name,
-          c.site_contractor_phone,
-          c.architect_name,
-          c.architect_phone
-
-      FROM clients c
-      INNER JOIN users u
-          ON c.user_id = u.id
-      INNER JOIN roles r
-          ON r.id = u.role_id
-       WHERE
-          c.deleted_by IS NULL
-          AND
-          (
-              $1 IN (3,16,17,18,19,20,21, 23)
-
-              OR
-
-              c.user_id = $1
-          )
-
-      ORDER BY c.id DESC;
+        ORDER BY c.id DESC;
     `;
 
       const result = await pool.query(query, [userId]);
