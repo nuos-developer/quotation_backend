@@ -8,12 +8,15 @@ const productModel = {
                 product_name,
                 category,
                 mod_size,
+                mrp_price,
+                discount_percentage,
                 price,
                 wiring_type_id,
                 wiring_type,
                 zigbee_type,
                 switch_load_count,
-                description
+                description,
+               
             } = reqBody;
 
 
@@ -27,8 +30,8 @@ const productModel = {
 
             const query = `
       INSERT INTO products 
-      (user_id, product_name, category, mod_size, price, wiring_type_id, wiring_type, zigbee_type, created_by, switch_load_count, description)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8, $9, $10, $11)
+      (user_id, product_name, category, mod_size, mrp_price, discount_percentage, price, wiring_type_id, wiring_type, zigbee_type, created_by, switch_load_count, description)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8, $9, $10, $11, $12, $13)
       RETURNING id;
     `;
 
@@ -37,6 +40,8 @@ const productModel = {
                 product_name,
                 category,
                 mod_size,
+                mrp_price,
+                discount_percentage,
                 price,
                 wiring_type_id || null, // ✅ integer now
                 wiring_type,
@@ -79,6 +84,8 @@ const productModel = {
                 `SELECT p.id,p.product_name,
                      p.category,
                      p.mod_size,
+                     p.mrp_price,
+                     p.discount_percentage,
                      p.price,
                      p.wiring_type_id,
                      p.wiring_type,
@@ -117,6 +124,8 @@ const productModel = {
                         p.product_name,
                         p.category,
                         p.mod_size,
+                        p.mrp_price,
+                        p.discount_percentage,
                         p.price,
                         wt.id AS wiring_type_id,
                         wt.wiring_type,
@@ -140,6 +149,8 @@ const productModel = {
                         p.product_name,
                         p.category,
                         p.mod_size,
+                        p.mrp_price,
+                        p.discount_percentage,
                         p.price,
                         wt.id,
                         wt.wiring_type,
@@ -178,6 +189,8 @@ const productModel = {
                      p.product_name,
                      p.category,
                      p.mod_size,
+                     p.mrp_price,
+                     p.discount_percentage,
                      p.price,
                      wt.id AS wiring_type_id,
                     -- wt.wiring_type_id ,
@@ -300,6 +313,8 @@ const productModel = {
                 product_name,
                 category,
                 mod_size,
+                mrp_price,
+                discount_percentage,
                 price,
                 wiring_type_id,
                 zigbee_type,
@@ -308,7 +323,7 @@ const productModel = {
                 switch_load_count
             } = reqBody;
 
-            // console.log(':>>>>>>>>>>>>', reqBody);
+            console.log(':>>>>>>>>>>>>', reqBody);
 
 
             // Convert wiring_type_id to integer or NULL
@@ -327,15 +342,17 @@ const productModel = {
                         product_name = $1,
                         category = $2,
                         mod_size = $3,
-                        price = $4,
-                        wiring_type_id = $5,
-                        category_id = $6,
-                        zigbee_type = $7,
-                        switch_load_count = $8,
-                        description = $9,
-                        updated_by = $10,
+                        mrp_price = $4,
+                        discount_percentage = $5,
+                        price = $6,
+                        wiring_type_id = $7,
+                        category_id = $8,
+                        zigbee_type = $9,
+                        switch_load_count = $10,
+                        description = $11,
+                        updated_by = $12,
                         updated_at = NOW()
-                    WHERE id = $11
+                    WHERE id = $13
                     RETURNING *;
                     `;
 
@@ -344,6 +361,8 @@ const productModel = {
                 product_name || null,
                 category || null,
                 mod_size ? parseInt(mod_size) : null,
+                mrp_price || null,
+                discount_percentage || null,
                 price || null,
                 wiringTypeId,
                 category_id ? parseInt(category_id) : null,
