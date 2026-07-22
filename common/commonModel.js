@@ -6,10 +6,13 @@ const commDbModel = {
     findByEmail: async (email_id) => {
         try {
             const result = await pool.query(
-                `SELECT u.id, u.email_id, r.id "role_id", r."level", u.password
+                ` SELECT u.id, u.email_id, u.user_name, u.first_name, u.last_name, u.mobile_number, ud.address, 
+                ud.pin_code, ud.country, ud.state , ud.district , ud.division,ud.company_name , ud.company_address, ud.gst_name,
+                    r.id "role_id", r.role_name, r."level", u.password
                 FROM users u
                 join roles r on r.id = u.role_id
-                WHERE email_id = $1 AND deleted_at IS NULL`,
+                join users_details ud  on u.id = ud.user_id 
+                WHERE u.email_id = $1 AND u.deleted_at IS NULL`,
                 [email_id]
             );
             return result.rows[0];

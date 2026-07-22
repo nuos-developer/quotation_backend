@@ -404,8 +404,7 @@ const dbModel = {
                 OR c.user_id = $1
             )
 
-        ORDER BY c.id DESC;
-    `;
+        ORDER BY c.id DESC;`;
 
       const result = await pool.query(query, [userId]);
 

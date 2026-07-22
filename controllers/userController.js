@@ -37,6 +37,7 @@ const userController = {
                     role_id: result.user.role_id,
                     role_level: result.user.level
                 },
+                userData : result.user,
                 permissions: result.permissions
             });
 
