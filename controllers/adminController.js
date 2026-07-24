@@ -174,8 +174,10 @@ const adminController = {
     },
     getClientByUserId: async (req, res) => {
         try {
+            
+            const clientCategory = req.query.client_category || undefined
             const userId = req.user.id
-            const result = await adminService.getClientByUserId(userId)
+            const result = await adminService.getClientByUserId(userId, clientCategory)
             res.status(HttpStatus.CREATED).json({ message: result.message, data: result.data, });
 
         } catch (error) {

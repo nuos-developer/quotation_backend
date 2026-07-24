@@ -214,9 +214,9 @@ const adminService = {
         }
     },
 
-    getClientByUserId: async (userId) => {
+    getClientByUserId: async (userId, clientCategory) => {
         try {
-            const resp = await dbModel.getClientByUserId(userId);
+            const resp = await dbModel.getClientByUserId(userId, clientCategory);
 
             return {
                 success: true,

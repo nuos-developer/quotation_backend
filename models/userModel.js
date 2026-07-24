@@ -310,13 +310,13 @@ const userModel = {
             const prefix = `CL0${userId}`;
 
             const lastClientQuery = `
-      SELECT client_id 
-      FROM clients 
-      WHERE user_id = $1 
-      ORDER BY id DESC 
-      LIMIT 1
-      FOR UPDATE;
-    `;
+                          SELECT client_id 
+                          FROM clients 
+                          WHERE user_id = $1 
+                          ORDER BY id DESC 
+                          LIMIT 1
+                          FOR UPDATE;
+                        `;
 
             const lastResult = await client.query(lastClientQuery, [userId]);
 
@@ -344,12 +344,12 @@ const userModel = {
         installation_rep_in_charge, lead_source,
         date_of_installation,
         site_contractor_name, site_contractor_phone,
-        architect_name, architect_phone
+        architect_name, architect_phone, client_category
       )
       VALUES (
         $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,
         $12,$13,$14,$15,$16,$17,$18,$19,$20,
-        $21,$22,$23,$24, $25, $26
+        $21,$22,$23,$24, $25, $26, $27
       )
       RETURNING *;
     `;
@@ -383,7 +383,8 @@ const userModel = {
                 data.site_contractor_name || null,
                 data.site_contractor_phone || null,
                 data.architect_name || null,
-                data.architect_phone || null
+                data.architect_phone || null,
+                data.client_category || null
             ];
 
             const result = await client.query(query, values);
@@ -433,8 +434,9 @@ const userModel = {
         site_contractor_phone = $22,
         architect_name = $23,
         architect_phone = $24,
+        client_category = $25,
         updated_at = CURRENT_TIMESTAMP   -- ✅ FIXED comma
-      WHERE id = $25
+      WHERE id = $26
       RETURNING *;
     `;
 
@@ -465,6 +467,7 @@ const userModel = {
                 data.site_contractor_phone || null,
                 data.architect_name || null,
                 data.architect_phone || null,
+                data.client_category || null,
                 clientId
             ];
 
