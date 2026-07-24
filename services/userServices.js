@@ -52,7 +52,7 @@ const adminService = {
           role_level: user.level
         },
         process.env.JWT_SECRET,
-        { expiresIn: '1d' }
+        { expiresIn: '15d' }
       );
 
       // 5. Fetch permissions

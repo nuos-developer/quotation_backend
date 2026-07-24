@@ -355,7 +355,7 @@ const dbModel = {
     try {
 
       const query = `
-             SELECT DISTINCT
+        SELECT DISTINCT
             c.id,
             c.client_id,
             c.user_id,
@@ -386,7 +386,6 @@ const dbModel = {
             c.site_contractor_phone,
             c.architect_name,
             c.architect_phone
-
         FROM clients c
         INNER JOIN users u
             ON c.user_id = u.id
