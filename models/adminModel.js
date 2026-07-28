@@ -870,7 +870,7 @@ const dbModel = {
       can_update=$3,
       can_delete=$4
     WHERE user_id=$5 AND module_id=$6
-  `;
+   `;
 
     await db.query(query, [
       permissions.create,
@@ -906,6 +906,168 @@ const dbModel = {
         message: 'Failed to delete proposal details',
         error: error.message,
       };
+    }
+  },
+
+  createRoomPackage: async (body, userId) => {
+
+    const client = await pool.connect();
+
+    try {
+
+      await client.query("BEGIN");
+
+      //----------------------------------
+      // Create Room Package
+      //----------------------------------
+
+      const packageResult = await client.query(
+
+        `
+            INSERT INTO product_packages
+            (
+                package_id,
+                room_name,
+                created_by
+            )
+            VALUES
+            (
+                $1,$2,$3
+            )
+            RETURNING id
+            `,
+        [
+          body.package_id,
+          body.room_name,
+          userId.created_by
+        ]
+
+      );
+
+      const productPackageId = packageResult.rows[0].id;
+
+      //----------------------------------
+      // Insert Products
+      //----------------------------------
+
+      for (const productId of body.product_ids) {
+
+        await client.query(
+
+          `
+                INSERT INTO product_package_products
+                (
+                    product_package_id,
+                    product_id,
+                    created_by
+                )
+                VALUES
+                (
+                    $1,$2,$3
+                )
+                `,
+          [
+            productPackageId,
+            productId,
+            userId.created_by
+          ]
+
+        );
+
+      }
+
+      await client.query("COMMIT");
+
+      return {
+        product_package_id: productPackageId
+      };
+
+    }
+    catch (error) {
+
+      await client.query("ROLLBACK");
+
+      throw error;
+
+    }
+    finally {
+
+      client.release();
+
+    }
+
+  },
+
+  getProductPackage: async (id) => {
+    try {
+      
+      const query = `
+          SELECT
+              pp.id,
+              pp.room_name,
+  
+              p.id AS package_id,
+              p.package_name,
+  
+              json_agg(
+  
+                  json_build_object(
+  
+                      'id', pr.id,
+                      'product_name', pr.product_name,
+                      'price', pr.price,
+                      'category', pr.category,
+                      'mod_size', pr.mod_size,
+                      'zigbee_type', pr.zigbee_type,
+                      'wiring_type', wt.wiring_type,
+                      'switch_load_count',pr.switch_load_count,
+                      'image_url', (
+                          SELECT pi.image_url
+                          FROM product_images pi
+                          WHERE pi.product_id = pr.id
+                          LIMIT 1
+                      )
+  
+                  )
+  
+                  ORDER BY pr.id
+  
+              ) AS products
+  
+          FROM product_packages pp
+  
+          JOIN packages p
+              ON p.id = pp.package_id
+  
+          JOIN product_package_products ppp
+              ON ppp.product_package_id = pp.id
+  
+          JOIN products pr
+              ON pr.id = ppp.product_id
+  
+          LEFT JOIN wiring_types wt
+              ON wt.id = pr.wiring_type_id
+  
+          -- WHERE pp.id = $1
+  
+          GROUP BY
+              pp.id,
+              pp.room_name,
+              p.id,
+              p.package_name
+  
+      `;
+  
+      const result = await pool.query(query,); //[id]
+  
+      if (result.rows.length === 0) {
+        throw new Error("Package not found");
+      }
+  
+      return result.rows[0];
+  
+    } catch (error) {
+      console.error(error)
     }
   },
 

@@ -23,6 +23,42 @@ const commonController = {
         }
     },
 
+    getPackage: async (req, res) => {
+        try {
+            const package = await commonServices.getPackages();
+
+            if (!package || package.length === 0) {
+                return res.status(HttpStatus.NOT_FOUND).json({ success: false, message: 'No Package found', });
+            }
+            return res.status(HttpStatus.OK).json({
+                success: true, message: 'Package fetched successfully', data: partners,
+            });
+        } catch (error) {
+            console.error('Error fetching Package:', error);
+            return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+                success: false, message: `${HttpMessage.INTERNAL_SERVER_ERROR}`, error: error.message,
+            });
+        }
+    },
+
+    getProductName: async (req, res) => {
+        try {
+            const productName = await commonServices.getProductName();
+
+            if (!productName || productName.length === 0) {
+                return res.status(HttpStatus.NOT_FOUND).json({ success: false, message: 'No productName found', });
+            }
+            return res.status(HttpStatus.OK).json({
+                success: true, message: 'productName fetched successfully', data: partners,
+            });
+        } catch (error) {
+            console.error('Error fetching productName:', error);
+            return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+                success: false, message: `${HttpMessage.INTERNAL_SERVER_ERROR}`, error: error.message,
+            });
+        }
+    },
+
     getModules: async (req, res) => {
         try {
             const partners = await commonServices.getModules();

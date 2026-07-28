@@ -352,7 +352,20 @@ const adminService = {
     updateUserPermission: async (payload, userId) => {
         await dbModel.updateUserPermission(payload, userId);
         return { message: 'Permission updated successfully' };
-    }
+    },
+
+
+    createProductPackages: async (reqBody, userId) => {
+
+        return await dbModel.createRoomPackage(reqBody, userId);
+
+    },
+
+    getProductPackage: async (id) => {
+
+        return await dbModel.getProductPackage(id);
+
+    },
 
 };
 

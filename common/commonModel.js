@@ -50,6 +50,31 @@ const commDbModel = {
             throw error;
         }
     },
+
+    getPackages: async () => {
+        try {
+            const result = await pool.query(
+                `SELECT p.id, p.package_name FROM packages p ORDER BY p.id ASC;`
+            );
+            return result.rows;
+        } catch (error) {
+            console.error('DB Error (getPackages):', error);
+            throw error;
+        }
+    },
+
+    getProductName: async () => {
+        try {
+            const result = await pool.query(
+                `SELECT p.id, p.product_name FROM products p ORDER BY p.id ASC;`
+            );
+            return result.rows;
+        } catch (error) {
+            console.error('DB Error (getProductName):', error);
+            throw error;
+        }
+    },
+
     _getModules: async () => {
         try {
             const result = await pool.query(

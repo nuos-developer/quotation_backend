@@ -174,7 +174,7 @@ const adminController = {
     },
     getClientByUserId: async (req, res) => {
         try {
-            
+
             const clientCategory = req.query.client_category || undefined
             const userId = req.user.id
             const result = await adminService.getClientByUserId(userId, clientCategory)
@@ -272,7 +272,56 @@ const adminController = {
     updateUserPermission: async (req, res) => {
         const result = await adminService.updateUserPermission(req.body, req.params.userId);
         res.json(result);
-    }
+    },
+
+    createProductPackages: async (req, res) => {
+
+        try {
+            const userId = req.user
+            console.log(':>>>>>>>', userId);
+
+
+            const result = await adminService.createProductPackages(req.body, userId);
+
+            return res.status(201).json({
+                success: true,
+                message: "Product Package Created Successfully",
+                data: result
+            });
+
+        } catch (error) {
+
+            return res.status(500).json({
+                success: false,
+                message: error.message
+            });
+        }
+    },
+
+    getRoomProductPackages: async (req, res) => {
+
+        try {
+
+            const result = await adminService.getProductPackage(
+                req.params.id
+            );
+
+            return res.status(200).json({
+                success: true,
+                data: result
+            });
+
+        } catch (error) {
+
+            return res.status(500).json({
+                success: false,
+                message: error.message
+            });
+
+        }
+
+    },
+
 
 
 };

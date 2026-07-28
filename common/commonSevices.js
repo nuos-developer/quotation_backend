@@ -16,6 +16,25 @@ const commonServices = {
             throw error;
         }
     },
+    getPackages: async () => {
+        try {
+            const packages = await commDbModel.getPackages();
+            return packages;
+        } catch (error) {
+            console.error('Service Error (getPartners):', error);
+            throw error;
+        }
+    },
+    
+    getProductName: async () => {
+        try {
+            const productName = await commDbModel.getProductName();
+            return productName;
+        } catch (error) {
+            console.error('Service Error (getPartners):', error);
+            throw error;
+        }
+    },
 
     getModules: async () => {
         try {

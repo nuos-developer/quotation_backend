@@ -39,6 +39,10 @@ router.put('/product/proposal/:id', authMiddleware(), productController.updatePr
 
 router.get('/product/wire_type', authMiddleware(), productController.getWireType)
 
+router.get('/product/get_package', authMiddleware(),  commController.getPackage)
+
+router.get('/product/get_product_name', authMiddleware(),  commController.getProductName)
+
 router.get('/product/category_type', authMiddleware(), productController.getCategoryType)
 
 router.get('/product/getproposal', authMiddleware(), productController.getProposalData)

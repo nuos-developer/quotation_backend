@@ -62,7 +62,11 @@ router.get(
 );
 
 
+router.post('/create_room_product_package', authMiddleware(), adminController.createProductPackages)
 
+router.get('/get_room_product_packages', authMiddleware(), adminController.getRoomProductPackages)
 
 
 module.exports = router;
+
+
