@@ -909,21 +909,20 @@ const dbModel = {
     }
   },
 
-  createRoomPackage: async (body, userId) => {
+ createRoomPackage: async (body, userId) => {
 
     const client = await pool.connect();
 
     try {
 
-      await client.query("BEGIN");
+        await client.query("BEGIN");
 
-      //----------------------------------
-      // Create Room Package
-      //----------------------------------
+        //----------------------------------
+        // Create Room Package
+        //----------------------------------
 
-      const packageResult = await client.query(
-
-        `
+        const packageResult = await client.query(
+            `
             INSERT INTO product_packages
             (
                 package_id,
@@ -932,145 +931,220 @@ const dbModel = {
             )
             VALUES
             (
-                $1,$2,$3
+                $1, $2, $3
             )
             RETURNING id
             `,
-        [
-          body.package_id,
-          body.room_name,
-          userId.created_by
-        ]
-
-      );
-
-      const productPackageId = packageResult.rows[0].id;
-
-      //----------------------------------
-      // Insert Products
-      //----------------------------------
-
-      for (const productId of body.product_ids) {
-
-        await client.query(
-
-          `
-                INSERT INTO product_package_products
-                (
-                    product_package_id,
-                    product_id,
-                    created_by
-                )
-                VALUES
-                (
-                    $1,$2,$3
-                )
-                `,
-          [
-            productPackageId,
-            productId,
-            userId.created_by
-          ]
-
+            [
+                body.package_id,
+                body.room_name,
+                userId.created_by
+            ]
         );
 
-      }
+        const productPackageId = packageResult.rows[0].id;
 
-      await client.query("COMMIT");
+        //----------------------------------
+        // Insert Switch Board Products
+        //----------------------------------
 
-      return {
-        product_package_id: productPackageId
-      };
+        if (
+            Array.isArray(body.switch_board_product_id) &&
+            body.switch_board_product_id.length > 0
+        ) {
 
-    }
-    catch (error) {
+            for (const switchBoardProductId of body.switch_board_product_id) {
 
-      await client.query("ROLLBACK");
+                await client.query(
+                    `
+                    INSERT INTO product_package_products
+                    (
+                        product_package_id,
+                        switch_board_product_id,
+                        room_product_id,
+                        created_by
+                    )
+                    VALUES
+                    (
+                        $1, $2, $3, $4
+                    )
+                    `,
+                    [
+                        productPackageId,
+                        switchBoardProductId,
+                        null,
+                        userId.created_by
+                    ]
+                );
 
-      throw error;
+            }
 
-    }
-    finally {
+        }
 
-      client.release();
+        //----------------------------------
+        // Insert Room Products
+        //----------------------------------
 
-    }
+        if (
+            Array.isArray(body.room_product_id) &&
+            body.room_product_id.length > 0
+        ) {
 
-  },
+            for (const roomProductId of body.room_product_id) {
 
-  getProductPackage: async (id) => {
-    try {
-      
-      const query = `
-          SELECT
-              pp.id,
-              pp.room_name,
-  
-              p.id AS package_id,
-              p.package_name,
-  
-              json_agg(
-  
-                  json_build_object(
-  
-                      'id', pr.id,
-                      'product_name', pr.product_name,
-                      'price', pr.price,
-                      'category', pr.category,
-                      'mod_size', pr.mod_size,
-                      'zigbee_type', pr.zigbee_type,
-                      'wiring_type', wt.wiring_type,
-                      'switch_load_count',pr.switch_load_count,
-                      'image_url', (
-                          SELECT pi.image_url
-                          FROM product_images pi
-                          WHERE pi.product_id = pr.id
-                          LIMIT 1
-                      )
-  
-                  )
-  
-                  ORDER BY pr.id
-  
-              ) AS products
-  
-          FROM product_packages pp
-  
-          JOIN packages p
-              ON p.id = pp.package_id
-  
-          JOIN product_package_products ppp
-              ON ppp.product_package_id = pp.id
-  
-          JOIN products pr
-              ON pr.id = ppp.product_id
-  
-          LEFT JOIN wiring_types wt
-              ON wt.id = pr.wiring_type_id
-  
-          -- WHERE pp.id = $1
-  
-          GROUP BY
-              pp.id,
-              pp.room_name,
-              p.id,
-              p.package_name
-  
-      `;
-  
-      const result = await pool.query(query,); //[id]
-  
-      if (result.rows.length === 0) {
-        throw new Error("Package not found");
-      }
-  
-      return result.rows[0];
-  
+                await client.query(
+                    `
+                    INSERT INTO product_package_products
+                    (
+                        product_package_id,
+                        switch_board_product_id,
+                        room_product_id,
+                        created_by
+                    )
+                    VALUES
+                    (
+                        $1, $2, $3, $4
+                    )
+                    `,
+                    [
+                        productPackageId,
+                        null,
+                        roomProductId,
+                        userId.created_by
+                    ]
+                );
+
+            }
+
+        }
+
+        await client.query("COMMIT");
+
+        return {
+            success: true,
+            product_package_id: productPackageId
+        };
+
     } catch (error) {
-      console.error(error)
-    }
-  },
 
+        await client.query("ROLLBACK");
+        console.error("createRoomPackage Error:", error);
+        throw error;
+
+    } finally {
+
+        client.release();
+
+    }
+
+},
+
+getProductPackage: async (id) => {
+
+    try {
+
+        const query = `
+            SELECT
+                pp.id,
+                pp.room_name,
+
+                p.id AS package_id,
+                p.package_name,
+
+                --------------------------------------
+                -- Switch Board Products
+                --------------------------------------
+                (
+                    SELECT COALESCE(
+                        json_agg(
+                            json_build_object(
+                                'id', pr.id,
+                                'product_name', pr.product_name,
+                                'price', pr.price,
+                                'category', pr.category,
+                                'mod_size', pr.mod_size,
+                                'zigbee_type', pr.zigbee_type,
+                                'switch_load_count', pr.switch_load_count,
+                                'wiring_type', wt.wiring_type,
+                                'image_url',
+                                (
+                                    SELECT pi.image_url
+                                    FROM product_images pi
+                                    WHERE pi.product_id = pr.id
+                                    LIMIT 1
+                                )
+                            )
+                            ORDER BY pr.id
+                        ),
+                        '[]'::json
+                    )
+                    FROM product_package_products ppp
+                    JOIN products pr
+                        ON pr.id = ppp.switch_board_product_id
+                    LEFT JOIN wiring_types wt
+                        ON wt.id = pr.wiring_type_id
+                    WHERE ppp.product_package_id = pp.id
+                      AND ppp.switch_board_product_id IS NOT NULL
+                ) AS switch_board_products,
+
+                --------------------------------------
+                -- Room Products
+                --------------------------------------
+                (
+                    SELECT COALESCE(
+                        json_agg(
+                            json_build_object(
+                                'id', pr.id,
+                                'product_name', pr.product_name,
+                                'price', pr.price,
+                                'category', pr.category,
+                                'mod_size', pr.mod_size,
+                                'zigbee_type', pr.zigbee_type,
+                                'switch_load_count', pr.switch_load_count,
+                                'wiring_type', wt.wiring_type,
+                                'image_url',
+                                (
+                                    SELECT pi.image_url
+                                    FROM product_images pi
+                                    WHERE pi.product_id = pr.id
+                                    LIMIT 1
+                                )
+                            )
+                            ORDER BY pr.id
+                        ),
+                        '[]'::json
+                    )
+                    FROM product_package_products ppp
+                    JOIN products pr
+                        ON pr.id = ppp.room_product_id
+                    LEFT JOIN wiring_types wt
+                        ON wt.id = pr.wiring_type_id
+                    WHERE ppp.product_package_id = pp.id
+                      AND ppp.room_product_id IS NOT NULL
+                ) AS room_products
+
+            FROM product_packages pp
+
+            JOIN packages p
+                ON p.id = pp.package_id
+
+            -- WHERE pp.id = $1;
+        `;
+
+        const result = await pool.query(query);
+
+        if (result.rows.length === 0) {
+            throw new Error("Package not found");
+        }
+
+        return result.rows[0];
+
+    } catch (error) {
+        console.error(error);
+        throw error;
+    }
+
+},
 
 };
 

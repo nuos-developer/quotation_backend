@@ -66,7 +66,7 @@ const commDbModel = {
     getProductName: async () => {
         try {
             const result = await pool.query(
-                `SELECT p.id, p.product_name FROM products p ORDER BY p.id ASC;`
+                `SELECT p.id, p.product_name FROM products p where p.is_active = true ORDER BY p.id ASC;`
             );
             return result.rows;
         } catch (error) {

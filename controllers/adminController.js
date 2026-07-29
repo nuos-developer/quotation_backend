@@ -278,8 +278,6 @@ const adminController = {
 
         try {
             const userId = req.user
-            console.log(':>>>>>>>', userId);
-
 
             const result = await adminService.createProductPackages(req.body, userId);
 
