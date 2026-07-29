@@ -927,17 +927,19 @@ const dbModel = {
             (
                 package_id,
                 room_name,
+                panel_mod,
                 created_by
             )
             VALUES
             (
-                $1, $2, $3
+                $1, $2, $3, $4
             )
             RETURNING id
             `,
             [
                 body.package_id,
                 body.room_name,
+                body.panel_mod,
                 userId.created_by
             ]
         );
@@ -1047,7 +1049,7 @@ getProductPackage: async (id) => {
             SELECT
                 pp.id,
                 pp.room_name,
-
+                pp.panel_mod,
                 p.id AS package_id,
                 p.package_name,
 
@@ -1107,7 +1109,7 @@ getProductPackage: async (id) => {
                                     SELECT pi.image_url
                                     FROM product_images pi
                                     WHERE pi.product_id = pr.id
-                                    LIMIT 1
+                                    
                                 )
                             )
                             ORDER BY pr.id
@@ -1128,7 +1130,6 @@ getProductPackage: async (id) => {
             JOIN packages p
                 ON p.id = pp.package_id
 
-            -- WHERE pp.id = $1;
         `;
 
         const result = await pool.query(query);
@@ -1137,7 +1138,7 @@ getProductPackage: async (id) => {
             throw new Error("Package not found");
         }
 
-        return result.rows[0];
+        return result.rows;
 
     } catch (error) {
         console.error(error);
