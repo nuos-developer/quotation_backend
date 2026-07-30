@@ -402,7 +402,7 @@ const dbModel = {
           AND (
               $1 IN (3,16,17,18,19,20,21,23)
               OR c.user_id = $1
-          )
+          )  ORDER BY  c.first_name ASC
     `;
 
       const params = [userId];
@@ -909,20 +909,20 @@ const dbModel = {
     }
   },
 
- createRoomPackage: async (body, userId) => {
+  createRoomPackage: async (body, userId) => {
 
     const client = await pool.connect();
 
     try {
 
-        await client.query("BEGIN");
+      await client.query("BEGIN");
 
-        //----------------------------------
-        // Create Room Package
-        //----------------------------------
+      //----------------------------------
+      // Create Room Package
+      //----------------------------------
 
-        const packageResult = await client.query(
-            `
+      const packageResult = await client.query(
+        `
             INSERT INTO product_packages
             (
                 package_id,
@@ -936,29 +936,66 @@ const dbModel = {
             )
             RETURNING id
             `,
+        [
+          body.package_id,
+          body.room_name,
+          body.panel_mod,
+          userId.created_by
+        ]
+      );
+
+      const productPackageId = packageResult.rows[0].id;
+
+      //----------------------------------
+      // Insert Switch Board Products
+      //----------------------------------
+
+      if (
+        Array.isArray(body.switch_board_product_id) &&
+        body.switch_board_product_id.length > 0
+      ) {
+
+        for (const switchBoardProductId of body.switch_board_product_id) {
+
+          await client.query(
+            `
+                    INSERT INTO product_package_products
+                    (
+                        product_package_id,
+                        switch_board_product_id,
+                        room_product_id,
+                        created_by
+                    )
+                    VALUES
+                    (
+                        $1, $2, $3, $4
+                    )
+                    `,
             [
-                body.package_id,
-                body.room_name,
-                body.panel_mod,
-                userId.created_by
+              productPackageId,
+              switchBoardProductId,
+              null,
+              userId.created_by
             ]
-        );
+          );
 
-        const productPackageId = packageResult.rows[0].id;
+        }
 
-        //----------------------------------
-        // Insert Switch Board Products
-        //----------------------------------
+      }
 
-        if (
-            Array.isArray(body.switch_board_product_id) &&
-            body.switch_board_product_id.length > 0
-        ) {
+      //----------------------------------
+      // Insert Room Products
+      //----------------------------------
 
-            for (const switchBoardProductId of body.switch_board_product_id) {
+      if (
+        Array.isArray(body.room_product_id) &&
+        body.room_product_id.length > 0
+      ) {
 
-                await client.query(
-                    `
+        for (const roomProductId of body.room_product_id) {
+
+          await client.query(
+            `
                     INSERT INTO product_package_products
                     (
                         product_package_id,
@@ -971,81 +1008,184 @@ const dbModel = {
                         $1, $2, $3, $4
                     )
                     `,
-                    [
-                        productPackageId,
-                        switchBoardProductId,
-                        null,
-                        userId.created_by
-                    ]
-                );
-
-            }
+            [
+              productPackageId,
+              null,
+              roomProductId,
+              userId.created_by
+            ]
+          );
 
         }
 
-        //----------------------------------
-        // Insert Room Products
-        //----------------------------------
+      }
 
-        if (
-            Array.isArray(body.room_product_id) &&
-            body.room_product_id.length > 0
-        ) {
+      await client.query("COMMIT");
 
-            for (const roomProductId of body.room_product_id) {
-
-                await client.query(
-                    `
-                    INSERT INTO product_package_products
-                    (
-                        product_package_id,
-                        switch_board_product_id,
-                        room_product_id,
-                        created_by
-                    )
-                    VALUES
-                    (
-                        $1, $2, $3, $4
-                    )
-                    `,
-                    [
-                        productPackageId,
-                        null,
-                        roomProductId,
-                        userId.created_by
-                    ]
-                );
-
-            }
-
-        }
-
-        await client.query("COMMIT");
-
-        return {
-            success: true,
-            product_package_id: productPackageId
-        };
+      return {
+        success: true,
+        product_package_id: productPackageId
+      };
 
     } catch (error) {
 
-        await client.query("ROLLBACK");
-        console.error("createRoomPackage Error:", error);
-        throw error;
+      await client.query("ROLLBACK");
+      console.error("createRoomPackage Error:", error);
+      throw error;
 
     } finally {
 
-        client.release();
+      client.release();
 
     }
 
-},
+  },
 
-getProductPackage: async (id) => {
+  updateRoomPackage: async (id, reqBody, userId) => {
+
+    const client = await pool.connect();
 
     try {
 
-        const query = `
+      await client.query("BEGIN");
+
+      const {
+        package_id,
+        room_name,
+        panel_mod,
+        switch_board_product_id = [],
+        room_product_id = []
+      } = reqBody;
+
+      // Check package exists
+      const packageResult = await client.query(
+        `
+            SELECT id
+            FROM product_packages
+            WHERE id = $1
+            `,
+        [id]
+      );
+
+      if (packageResult.rowCount === 0) {
+        throw new Error("Package not found.");
+      }
+
+      // Update package details
+      await client.query(
+        `
+            UPDATE product_packages
+            SET
+                package_id = $1,
+                room_name = $2,
+                panel_mod = $3,
+                updated_by = $4,
+                updated_at = NOW()
+            WHERE id = $5
+            `,
+        [
+          package_id,
+          room_name,
+          panel_mod,
+          userId,
+          id
+        ]
+      );
+
+      // Delete existing product mappings
+      await client.query(
+        `
+            DELETE FROM product_package_products
+            WHERE product_package_id = $1
+            `,
+        [id]
+      );
+
+      // Insert Switch Board Products
+      if (Array.isArray(switch_board_product_id) && switch_board_product_id.length > 0) {
+
+        for (const productId of switch_board_product_id) {
+
+          await client.query(
+            `
+                    INSERT INTO product_package_products
+                    (
+                        product_package_id,
+                        switch_board_product_id,
+                        room_product_id
+                    )
+                    VALUES
+                    (
+                        $1,
+                        $2,
+                        NULL
+                    )
+                    `,
+            [
+              id,
+              productId
+            ]
+          );
+
+        }
+
+      }
+
+      // Insert Room Products
+      if (Array.isArray(room_product_id) && room_product_id.length > 0) {
+
+        for (const productId of room_product_id) {
+
+          await client.query(
+            `
+                    INSERT INTO product_package_products
+                    (
+                        product_package_id,
+                        switch_board_product_id,
+                        room_product_id
+                    )
+                    VALUES
+                    (
+                        $1,
+                        NULL,
+                        $2
+                    )
+                    `,
+            [
+              id,
+              productId
+            ]
+          );
+
+        }
+
+      }
+
+      await client.query("COMMIT");
+
+      return {
+        success: true,
+        message: "Package updated successfully."
+      };
+
+    } catch (err) {
+
+      await client.query("ROLLBACK");
+      throw err;
+
+    } finally {
+
+      client.release();
+
+    }
+
+  },
+
+  getProductPackage: async (id) => {
+
+    try {
+
+      const query = `
             SELECT
                 pp.id,
                 pp.room_name,
@@ -1128,24 +1268,91 @@ getProductPackage: async (id) => {
             FROM product_packages pp
 
             JOIN packages p
-                ON p.id = pp.package_id
+                ON p.id = pp.package_id WHERE pp.deleted_by IS NULL
 
         `;
 
-        const result = await pool.query(query);
+      const result = await pool.query(query);
 
-        if (result.rows.length === 0) {
-            throw new Error("Package not found");
-        }
+      if (result.rows.length === 0) {
+        throw new Error("Package not found");
+      }
 
-        return result.rows;
+      return result.rows;
 
     } catch (error) {
-        console.error(error);
-        throw error;
+      console.error(error);
+      throw error;
     }
 
-},
+  },
+
+  deleteRoomPackage: async (id, userId) => {
+
+    const client = await pool.connect();
+
+    try {
+
+      await client.query("BEGIN");
+
+      // Check package exists
+      const packageResult = await client.query(
+        `
+            SELECT id
+            FROM product_packages
+            WHERE id = $1
+            AND deleted_by IS NUll
+            `,
+        [id]
+      );
+
+      if (packageResult.rowCount === 0) {
+        throw new Error("Package not found.");
+      }
+
+      // Delete child records
+      await client.query(
+        `
+            DELETE FROM product_package_products
+            WHERE product_package_id = $1
+            `,
+        [id]
+      );
+
+      // Soft delete package
+      await client.query(
+        `
+            UPDATE product_packages
+            SET
+                deleted_by = $1,
+                deleted_at = NOW()
+            WHERE id = $2
+            `,
+        [
+          userId,
+          id
+        ]
+      );
+
+      await client.query("COMMIT");
+
+      return {
+        success: true,
+        message: "Package deleted successfully."
+      };
+
+    } catch (err) {
+
+      await client.query("ROLLBACK");
+      throw err;
+
+    } finally {
+
+      client.release();
+
+    }
+
+  },
 
 };
 

@@ -361,11 +361,19 @@ const adminService = {
 
     },
 
-    getProductPackage: async (id) => {
-
-        return await dbModel.getProductPackage(id);
-
+    updateRoomPackage: async (id, reqBody, userId) => {
+        return await dbModel.updateRoomPackage(id, reqBody, userId);
     },
+
+    getProductPackage: async (id) => {
+        return await dbModel.getProductPackage(id);
+    },
+
+    deleteRoomPackage: async (id, userId) => {
+        return await dbModel.deleteRoomPackage(id, userId);
+    },
+
+
 
 };
 

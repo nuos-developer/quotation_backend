@@ -320,7 +320,42 @@ const adminController = {
 
     },
 
+    updateRoomPackage: async (req, res) => {
+        try {
+            const userId = req.user.id
+            const id = req.params.id;
+            const result = await adminService.updateRoomPackage(id, req.body, userId);
+            return res.status(200).json({
+                success: true,
+                message: "Package updated successfully.",
+                data: result
+            });
+        } catch (error) {
+            console.error(error);
+            return res.status(500).json({
+                success: false,
+                message: error.message
+            });
+        }
+    },
 
+    deleteRoomPackage: async (req, res) => {
+        try {
+            const id = req.params.id;
+            const userId = req.user.id
+            await adminService.deleteRoomPackage(id, userId);
+            return res.status(200).json({
+                success: true,
+                message: "Package deleted successfully."
+            });
+        } catch (error) {
+            console.error(error);
+            return res.status(500).json({
+                success: false,
+                message: error.message
+            });
+        }
+    },
 
 };
 

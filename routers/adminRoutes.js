@@ -66,6 +66,11 @@ router.post('/create_room_product_package', authMiddleware(), adminController.cr
 
 router.get('/get_room_product_packages', authMiddleware(), adminController.getRoomProductPackages)
 
+router.put(
+  "/update_room_package/:id", authMiddleware(), adminController.updateRoomPackage);
+
+router.delete(
+  "/delete_room_package/:id", authMiddleware(), adminController.deleteRoomPackage);
 
 module.exports = router;
 

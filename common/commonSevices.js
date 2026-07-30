@@ -25,7 +25,7 @@ const commonServices = {
             throw error;
         }
     },
-    
+
     getProductName: async () => {
         try {
             const productName = await commDbModel.getProductName();

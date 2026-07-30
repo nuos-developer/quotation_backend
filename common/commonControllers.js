@@ -31,7 +31,7 @@ const commonController = {
                 return res.status(HttpStatus.NOT_FOUND).json({ success: false, message: 'No Package found', });
             }
             return res.status(HttpStatus.OK).json({
-                success: true, message: 'Package fetched successfully', data: partners,
+                success: true, message: 'Package fetched successfully', data: package,
             });
         } catch (error) {
             console.error('Error fetching Package:', error);
@@ -49,7 +49,7 @@ const commonController = {
                 return res.status(HttpStatus.NOT_FOUND).json({ success: false, message: 'No productName found', });
             }
             return res.status(HttpStatus.OK).json({
-                success: true, message: 'productName fetched successfully', data: partners,
+                success: true, message: 'productName fetched successfully', data: productName,
             });
         } catch (error) {
             console.error('Error fetching productName:', error);
