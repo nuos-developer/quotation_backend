@@ -336,7 +336,7 @@ const dbModel = {
 
           FROM clients c
           INNER JOIN users u ON c.user_id = u.id
-          INNER JOIN roles r ON r.id = u.role_id WHERE c.deleted_by is NULL ORDER BY u.id DESC`;
+          INNER JOIN roles r ON r.id = u.role_id WHERE c.deleted_by is NULL ORDER BY c.first_name ASC`;
 
       const result = await pool.query(query);
 
