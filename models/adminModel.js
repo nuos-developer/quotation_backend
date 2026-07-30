@@ -402,7 +402,7 @@ const dbModel = {
           AND (
               $1 IN (3,16,17,18,19,20,21,23)
               OR c.user_id = $1
-          )  ORDER BY  c.first_name ASC
+          )
     `;
 
       const params = [userId];
@@ -417,7 +417,7 @@ const dbModel = {
         params.push(clientCategory);
       }
 
-      query += ` ORDER BY c.id DESC`;
+      query += ` ORDER BY c.first_name ASC`;
 
       const result = await pool.query(query, params);
 
