@@ -369,6 +369,10 @@ const adminService = {
         return await dbModel.getProductPackage(id);
     },
 
+    getProductPackagesData: async (id) => {
+        return await dbModel.getProductPackagesData(id);
+    },
+
     deleteRoomPackage: async (id, userId) => {
         return await dbModel.deleteRoomPackage(id, userId);
     },

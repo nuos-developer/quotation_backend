@@ -66,6 +66,8 @@ router.post('/create_room_product_package', authMiddleware(), adminController.cr
 
 router.get('/get_room_product_packages', authMiddleware(), adminController.getRoomProductPackages)
 
+router.get('/get_product_packages', authMiddleware(), adminController.getProductPackagesData)
+
 router.put(
   "/update_room_package/:id", authMiddleware(), adminController.updateRoomPackage);
 

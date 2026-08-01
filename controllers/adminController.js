@@ -320,6 +320,30 @@ const adminController = {
 
     },
 
+    getProductPackagesData: async (req, res) => {
+
+        try {
+
+            const result = await adminService.getProductPackagesData(
+                req.params.id
+            );
+
+            return res.status(200).json({
+                success: true,
+                data: result
+            });
+
+        } catch (error) {
+
+            return res.status(500).json({
+                success: false,
+                message: error.message
+            });
+
+        }
+
+    },
+
     updateRoomPackage: async (req, res) => {
         try {
             const userId = req.user.id

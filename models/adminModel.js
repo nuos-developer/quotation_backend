@@ -1287,6 +1287,113 @@ const dbModel = {
 
   },
 
+  getProductPackagesData: async (id) => {
+
+    try {
+
+      const query = `
+            SELECT
+                pp.id,
+                pp.room_name,
+                pp.panel_mod,
+                p.id AS package_id,
+                p.package_name,
+
+                --------------------------------------
+                -- Switch Board Products
+                --------------------------------------
+                (
+                    SELECT COALESCE(
+                        json_agg(
+                            json_build_object(
+                                'id', pr.id,
+                                'name', pr.product_name,
+                                'price', pr.price,
+                                'category', pr.category,
+                                'modSize', pr.mod_size,
+                                'zigbee_type', pr.zigbee_type,
+                                'switch_load_count', pr.switch_load_count,
+                                'wiring_type', wt.wiring_type,
+                                'wiring_type_id', wt.id,
+                                'images',
+                                (
+                                    SELECT pi.image_url
+                                    FROM product_images pi
+                                    WHERE pi.product_id = pr.id
+                                    LIMIT 1
+                                )
+                            )
+                            ORDER BY pr.id
+                        ),
+                        '[]'::json
+                    )
+                    FROM product_package_products ppp
+                    JOIN products pr
+                        ON pr.id = ppp.switch_board_product_id
+                    LEFT JOIN wiring_types wt
+                        ON wt.id = pr.wiring_type_id
+                    WHERE ppp.product_package_id = pp.id
+                      AND ppp.switch_board_product_id IS NOT NULL
+                ) AS switch_board_products,
+
+                --------------------------------------
+                -- Room Products
+                --------------------------------------
+                (
+                    SELECT COALESCE(
+                        json_agg(
+                            json_build_object(
+                                'id', pr.id,
+                                'name', pr.product_name,
+                                'price', pr.price,
+                                'category', pr.category,
+                                'modSize', pr.mod_size,
+                                'zigbee_type', pr.zigbee_type,
+                                'switch_load_count', pr.switch_load_count,
+                                'wiring_type', wt.wiring_type,
+                                'wiring_type_id',wt.id,
+                                'images',
+                                (
+                                    SELECT pi.image_url
+                                    FROM product_images pi
+                                    WHERE pi.product_id = pr.id
+                                    
+                                )
+                            )
+                            ORDER BY pr.id
+                        ),
+                        '[]'::json
+                    )
+                    FROM product_package_products ppp
+                    JOIN products pr
+                        ON pr.id = ppp.room_product_id
+                    LEFT JOIN wiring_types wt
+                        ON wt.id = pr.wiring_type_id
+                    WHERE ppp.product_package_id = pp.id
+                      AND ppp.room_product_id IS NOT NULL
+                ) AS room_products
+
+            FROM product_packages pp
+
+            JOIN packages p
+                ON p.id = pp.package_id WHERE pp.deleted_by IS NULL
+        `;
+
+      const result = await pool.query(query);
+
+      if (result.rows.length === 0) {
+        throw new Error("Package not found");
+      }
+
+      return result.rows;
+
+    } catch (error) {
+      console.error(error);
+      throw error;
+    }
+
+  },
+
   deleteRoomPackage: async (id, userId) => {
 
     const client = await pool.connect();
