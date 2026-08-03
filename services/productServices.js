@@ -241,6 +241,14 @@ const productService = {
         }
     },
 
+    updateProposalStatus: async (proposalId, proposalStatus, userId) => {
+        return await productModel.updateProposalStatus(
+            proposalId,
+            proposalStatus,
+            userId
+        );
+    },
+
     getProposalData: async (userId) => {
         try {
 

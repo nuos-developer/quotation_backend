@@ -435,7 +435,7 @@ const userModel = {
         architect_name = $23,
         architect_phone = $24,
         client_category = $25,
-        iso_code = $26
+        iso_code = $26,
         updated_at = CURRENT_TIMESTAMP   -- ✅ FIXED comma
       WHERE id = $27
       RETURNING *;

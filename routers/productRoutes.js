@@ -37,6 +37,8 @@ router.post('/product/insertProposal', authMiddleware(), productController.creat
 
 router.put('/product/proposal/:id', authMiddleware(), productController.updateProposal);
 
+router.put('/product/update_proposal_status/:id', authMiddleware(), productController.updateProposalStatus)
+
 router.get('/product/wire_type', authMiddleware(), productController.getWireType)
 
 router.get('/product/get_package', authMiddleware(),  commController.getPackage)
@@ -46,6 +48,7 @@ router.get('/product/get_product_name', authMiddleware(),  commController.getPro
 router.get('/product/category_type', authMiddleware(), productController.getCategoryType)
 
 router.get('/product/getproposal', authMiddleware(), productController.getProposalData)
+
 
 router.get('/product/getproposalById/:id', authMiddleware(), productController.getProposalDataById)
 

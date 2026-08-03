@@ -779,6 +779,53 @@ const productModel = {
         }
     },
 
+    updateProposalStatus: async (proposalId, proposalStatus, userId) => {
+
+    const client = await pool.connect();
+
+    try {
+
+        await client.query("BEGIN");
+
+        const query = `
+            UPDATE proposals
+            SET
+                proposal_status = $1,
+                updated_by = $2,
+                updated_at = NOW()
+            WHERE id = $3
+            RETURNING *;
+        `;
+
+        const values = [
+            proposalStatus,
+            userId,
+            proposalId
+        ];
+
+        const result = await client.query(query, values);
+
+        if (result.rowCount === 0) {
+            throw new Error("Proposal not found.");
+        }
+
+        await client.query("COMMIT");
+
+        return result.rows[0];
+
+    } catch (error) {
+
+        await client.query("ROLLBACK");
+        throw error;
+
+    } finally {
+
+        client.release();
+
+    }
+
+},
+
     getProposalData: async (userId) => {
         try {
             const result = await pool.query(
