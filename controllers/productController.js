@@ -9,9 +9,6 @@ const productController = {
         try {
             const reqBody = req.body;
 
-            console.log(':>>>>>>>>>>>',reqBody);
-            
-
             const userId = req.user.id;
 
             // Convert uploaded files into accessible URLs

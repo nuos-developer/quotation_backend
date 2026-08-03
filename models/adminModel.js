@@ -309,6 +309,7 @@ const dbModel = {
 
               c.first_name,
               c.last_name,
+              c.iso_code,
               c.mobile_number,
               c.email_id,
 
@@ -365,6 +366,7 @@ const dbModel = {
           u.user_name,
           c.first_name,
           c.last_name,
+          c.iso_code,
           c.mobile_number,
           c.email_id,
           c.address_line_one,

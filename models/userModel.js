@@ -253,8 +253,7 @@ const userModel = {
                             JOIN modules m ON p.module_id = m.id 
                             JOIN roles r  ON p.role_id  = r.id 
                             JOIN users u ON p.user_id = u.id 
-                            WHERE user_Id = $1
-                            `
+                            WHERE user_Id = $1`
 
             const result = await pool.query(query, [userId]);
 
@@ -335,24 +334,24 @@ const userModel = {
 
             // 🔥 INSERT
             const query = `
-      INSERT INTO clients (
-        user_id, client_id, first_name, last_name,
-        mobile_number, email_id, address_line_one, address_line_two, pin_code,
-        country, state, district,
-        taluk, division, region,
-        company_name, gst, company_address, salesrepincharge,
-        installation_rep_in_charge, lead_source,
-        date_of_installation,
-        site_contractor_name, site_contractor_phone,
-        architect_name, architect_phone, client_category
-      )
-      VALUES (
-        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,
-        $12,$13,$14,$15,$16,$17,$18,$19,$20,
-        $21,$22,$23,$24, $25, $26, $27
-      )
-      RETURNING *;
-    `;
+                      INSERT INTO clients (
+                        user_id, client_id, first_name, last_name,
+                        mobile_number, email_id, address_line_one, address_line_two, pin_code,
+                        country, state, district,
+                        taluk, division, region,
+                        company_name, gst, company_address, salesrepincharge,
+                        installation_rep_in_charge, lead_source,
+                        date_of_installation,
+                        site_contractor_name, site_contractor_phone,
+                        architect_name, architect_phone, client_category, iso_code
+                      )
+                      VALUES (
+                        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,
+                        $12,$13,$14,$15,$16,$17,$18,$19,$20,
+                        $21,$22,$23,$24, $25, $26, $27, $28
+                      )
+                      RETURNING *;
+                    `;
 
             const values = [
                 userId,
@@ -384,7 +383,8 @@ const userModel = {
                 data.site_contractor_phone || null,
                 data.architect_name || null,
                 data.architect_phone || null,
-                data.client_category || null
+                data.client_category || null,
+                data.iso_code || null
             ];
 
             const result = await client.query(query, values);
@@ -435,8 +435,9 @@ const userModel = {
         architect_name = $23,
         architect_phone = $24,
         client_category = $25,
+        iso_code = $26
         updated_at = CURRENT_TIMESTAMP   -- ✅ FIXED comma
-      WHERE id = $26
+      WHERE id = $27
       RETURNING *;
     `;
 
@@ -468,6 +469,7 @@ const userModel = {
                 data.architect_name || null,
                 data.architect_phone || null,
                 data.client_category || null,
+                data.iso_code || null,
                 clientId
             ];
 
