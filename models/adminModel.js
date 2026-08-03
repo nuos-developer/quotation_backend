@@ -304,6 +304,7 @@ const dbModel = {
               c.client_id,
               c.user_id,
               r.role_name,
+              c.client_category,
               u.role_id,
               u.user_name,
 
