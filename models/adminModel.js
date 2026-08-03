@@ -353,11 +353,11 @@ const dbModel = {
     }
   },
 
-getClientByUserId: async (userId, clientCategory) => {
+  getClientByUserId: async (userId, clientCategory) => {
 
     try {
 
-        let query = `
+      let query = `
             SELECT DISTINCT
                 c.id,
                 c.client_id,
@@ -398,11 +398,6 @@ getClientByUserId: async (userId, clientCategory) => {
                 ON r.id = u.role_id
             WHERE
                 c.deleted_by IS NULL
-                AND EXISTS (
-                    SELECT 1
-                    FROM proposals p
-                    WHERE p.client_id = c.id
-                )
                 AND (
                     $1 = ANY(ARRAY[3,16,17,18,19,20,21,23])
                     OR c.user_id = $1
@@ -413,23 +408,22 @@ getClientByUserId: async (userId, clientCategory) => {
                 )
             ORDER BY c.first_name ASC
         `;
+      const result = await pool.query(query, [
+        userId,
+        clientCategory || null
+      ]);
 
-        const result = await pool.query(query, [
-            userId,
-            clientCategory || null
-        ]);
-
-        return {
-            success: true,
-            data: result.rows
-        };
+      return {
+        success: true,
+        data: result.rows
+      };
 
     } catch (error) {
-        console.error("Error fetching client by userId:", error);
-        throw error;
+      console.error("Error fetching client by userId:", error);
+      throw error;
     }
 
-},
+  },
 
   logOutUser: async (userId) => {
     try {
