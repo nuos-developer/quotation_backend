@@ -1481,7 +1481,7 @@ const productModel = {
                             LEFT JOIN product_images pi ON pi.product_id = p.id
                             GROUP BY p.id, wt.wiring_name
                         ),
-
+                                    
                         products_wise_cache AS (
                             SELECT
                                 p.id AS proposal_id,
@@ -1506,23 +1506,24 @@ const productModel = {
                             AND p.deleted_at IS NULL
                             GROUP BY p.id
                         )
-
+                                    
                         SELECT
                             p.id,
                             p.proposal_id,
                             p.proposal_title,
                             p.proposal_type,
+                            p.proposal_status,
                             p.created_at,
                             p.updated_at,
-
+                                    
                             floors.floor,
-
+                                    
                             CASE 
                                 WHEN p.proposal_type = 'productsWise' 
                                 THEN pwc.products_list
                                 ELSE NULL
                             END AS products_wise_items,
-
+                                    
                             p.commissioning_percentage,
                             p.discount_percentage,
                             p.financial_breakdown,
@@ -1532,7 +1533,7 @@ const productModel = {
                             p.ship_to_address,
                             p.use_same_address,
                             p.use_same_recipient,
-
+                                    
                             jsonb_build_object(
                                 'id', c.id,
                                 'client_id', c.client_id,
@@ -1565,7 +1566,7 @@ const productModel = {
                                 'architect_phone', c.architect_phone,
                                 'address_line_two', c.address_line_two
                             ) AS client_details,
-
+                                    
                             jsonb_build_object(
                                 'id', u.id,
                                 'user_name', u.user_name,
@@ -1574,9 +1575,9 @@ const productModel = {
                                     'role_name', r.role_name
                                 )
                             ) AS created_by
-
+                                    
                         FROM proposals p
-
+                                    
                         LEFT JOIN LATERAL (
                             SELECT jsonb_agg(
                                 jsonb_build_object(
@@ -1589,7 +1590,7 @@ const productModel = {
                                                     SELECT jsonb_agg(
                                                         jsonb_build_object(
                                                             'name', rm_val->>'name',
-
+                                    
                                                             -- ✅ ROOM PRODUCTS - ORDER PRESERVED
                                                             'products', COALESCE(
                                                                 (
@@ -1603,6 +1604,13 @@ const productModel = {
                                                                             'wiring_type_id', pc.wiring_type_id,
                                                                             'wiring_type', pc.wiring_name,
                                                                             'images', pc.images,
+                                                                            'quantity', COALESCE(
+                                                                                CASE 
+                                                                                    WHEN jsonb_typeof(pid_val) = 'object' 
+                                                                                    THEN (pid_val->>'quantity')::int
+                                                                                    ELSE NULL
+                                                                                END, 1
+                                                                            ),
                                                                             'firstLoad', COALESCE(
                                                                                 CASE 
                                                                                     WHEN jsonb_typeof(pid_val) = 'object' 
@@ -1647,7 +1655,7 @@ const productModel = {
                                                                 ),
                                                                 '[]'::jsonb
                                                             ),
-
+                                    
                                                             -- ✅ SWITCHBOARDS - ORDER PRESERVED
                                                             'switchboards', (
                                                                 SELECT jsonb_agg(
@@ -1655,7 +1663,7 @@ const productModel = {
                                                                         'name', sb_val->>'name',
                                                                         'mod', sb_val->'mod',
                                                                         'colorValue', sb_val->'colorValue',
-
+                                    
                                                                         -- ✅ SWITCHBOARD PRODUCTS - ORDER PRESERVED
                                                                         'products', COALESCE(
                                                                             (
@@ -1669,6 +1677,13 @@ const productModel = {
                                                                                         'wiring_type_id', pc.wiring_type_id,
                                                                                         'wiring_type', pc.wiring_name,
                                                                                         'images', pc.images,
+                                                                                        'quantity', COALESCE(
+                                                                                            CASE 
+                                                                                                WHEN jsonb_typeof(spid_val) = 'object' 
+                                                                                                THEN (spid_val->>'quantity')::int
+                                                                                                ELSE NULL
+                                                                                            END, 1
+                                                                                        ),
                                                                                         'firstLoad', COALESCE(
                                                                                             CASE 
                                                                                                 WHEN jsonb_typeof(spid_val) = 'object' 
@@ -1737,7 +1752,7 @@ const productModel = {
                                 COALESCE(p.floor, '[]'::jsonb)
                             ) WITH ORDINALITY AS t(fl_val, fl_idx)
                         ) floors ON TRUE
-
+                                    
                         LEFT JOIN products_wise_cache pwc ON pwc.proposal_id = p.id
                         LEFT JOIN clients c ON c.id = p.client_id
                         LEFT JOIN users u ON u.id = p.created_by
