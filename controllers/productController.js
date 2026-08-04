@@ -219,28 +219,35 @@ const productController = {
         }
     },
 
-    updateProposalStatus: async (req, res) => {
-        try {
-            const proposalId = req.params.id;
-            const userId = req.user.id;
-            const { proposal_status } = req.body;
+   updateProposalStatus: async (req, res) => {
+    try {
 
-            const result = await productService.updateProposalStatus(proposalId, userId, proposal_status);
+        const proposalId = req.params.id;
+        const { proposal_status } = req.body;
+        const userId = req.user.id;
 
-            if (!result.success) {
-                return res.status(400).json({ message: result.message });
-            }
+        const data = await productService.updateProposalStatus(
+            proposalId,
+            proposal_status,
+            userId
+        );
 
-            return res.status(200).json({
-                message: 'Proposal updated successfully',
-                data: result.data
-            });
+        return res.status(200).json({
+            success: true,
+            message: "Proposal status updated successfully.",
+            data
+        });
 
-        } catch (error) {
-            console.error('Update Proposal Error:', error);
-            return res.status(500).json({ message: 'Internal server error' });
-        }
-    },
+    } catch (error) {
+
+        console.error(error);
+
+        return res.status(500).json({
+            message: error.message
+        });
+
+    }
+},
 
     getProposalData: async (req, res) => {
         try {

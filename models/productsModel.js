@@ -17,7 +17,7 @@ const productModel = {
                 zigbee_type,
                 switch_load_count,
                 description,
-               
+
             } = reqBody;
 
 
@@ -128,7 +128,7 @@ const productModel = {
                         p.mod_size,
                         p.mrp_price,
                         p.discount_percentage,
-                        p.price,
+                        ROUND(p.price::numeric) AS price,
                         wt.id AS wiring_type_id,
                         wt.wiring_type,
                         p.category_id,
@@ -780,51 +780,37 @@ const productModel = {
     },
 
     updateProposalStatus: async (proposalId, proposalStatus, userId) => {
-
-    const client = await pool.connect();
-
-    try {
-
-        await client.query("BEGIN");
-
-        const query = `
+        const client = await pool.connect();
+        try {
+            await client.query("BEGIN");
+            const query = `
             UPDATE proposals
             SET
                 proposal_status = $1,
-                updated_by = $2,
                 updated_at = NOW()
-            WHERE id = $3
+            WHERE client_id = $2
             RETURNING *;
         `;
-
-        const values = [
-            proposalStatus,
-            userId,
-            proposalId
-        ];
-
-        const result = await client.query(query, values);
-
-        if (result.rowCount === 0) {
-            throw new Error("Proposal not found.");
+            const values = [
+                proposalStatus,
+                // userId,
+                proposalId
+            ];
+            console.log(values);
+            const result = await client.query(query, values);
+            // if (result.rowCount === 0) {
+            //     throw new Error("Proposal not found.");
+            // }
+            await client.query("COMMIT");
+            return result.rows[0];
+        } catch (error) {
+            console.log(error);
+            await client.query("ROLLBACK");
+            throw error;
+        } finally {
+            client.release();
         }
-
-        await client.query("COMMIT");
-
-        return result.rows[0];
-
-    } catch (error) {
-
-        await client.query("ROLLBACK");
-        throw error;
-
-    } finally {
-
-        client.release();
-
-    }
-
-},
+    },
 
     getProposalData: async (userId) => {
         try {

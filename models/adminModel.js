@@ -295,7 +295,7 @@ const dbModel = {
     }
   },
 
-  getClientData: async () => {
+  getClientData: async (clientCategory, adminId) => {
     try {
       // const { } = reqBody
       const query =
@@ -338,9 +338,25 @@ const dbModel = {
 
           FROM clients c
           INNER JOIN users u ON c.user_id = u.id
-          INNER JOIN roles r ON r.id = u.role_id WHERE c.deleted_by is NULL ORDER BY c.first_name ASC`;
+          INNER JOIN roles r ON r.id = u.role_id 
+           WHERE
+                c.deleted_by IS NULL
+                AND (
+                    $1 = ANY(ARRAY[3,16,17,18,19,20,21,23])
+                    OR c.user_id = $1
+                )
+                AND (
+                    $2::text IS NULL
+                    OR TRIM(LOWER(c.client_category)) = TRIM(LOWER($2))
+                )
+            ORDER BY c.first_name ASC
+        `;
 
-      const result = await pool.query(query);
+
+      const result = await pool.query(query,  [
+        adminId,
+        clientCategory || null
+      ]);
 
       return {
         success: true,
@@ -396,6 +412,8 @@ const dbModel = {
                 ON c.user_id = u.id
             INNER JOIN roles r
                 ON r.id = u.role_id
+            INNER JOIN proposals p
+            	ON p.client_id = c.id
             WHERE
                 c.deleted_by IS NULL
                 AND (

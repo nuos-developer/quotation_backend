@@ -195,9 +195,9 @@ const adminService = {
         }
     },
 
-    getClientData: async () => {
+    getClientData: async (clientCategory, adminId) => {
         try {
-            const resp = await dbModel.getClientData();
+            const resp = await dbModel.getClientData(clientCategory, adminId);
 
             return {
                 success: true,
