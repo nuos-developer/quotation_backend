@@ -866,6 +866,7 @@ const productModel = {
                             p.proposal_id,
                             p.proposal_title,
                             p.proposal_type,
+                            p.proposal_status,
                             p.created_at,
                             p.updated_at,
                                     
@@ -957,6 +958,13 @@ const productModel = {
                                                                             'wiring_type_id', pc.wiring_type_id,
                                                                             'wiring_type', pc.wiring_name,
                                                                             'images', pc.images,
+                                                                            'quantity', COALESCE(   --this type of added when json filed added
+                                                                                CASE 
+                                                                                    WHEN jsonb_typeof(pid_val) = 'object' 
+                                                                                    THEN (pid_val->>'quantity')::int
+                                                                                    ELSE NULL
+                                                                                END, 1
+                                                                            ),
                                                                             'firstLoad', COALESCE(
                                                                                 CASE 
                                                                                     WHEN jsonb_typeof(pid_val) = 'object' 
@@ -1023,6 +1031,13 @@ const productModel = {
                                                                                         'wiring_type_id', pc.wiring_type_id,
                                                                                         'wiring_type', pc.wiring_name,
                                                                                         'images', pc.images,
+                                                                                        'quantity', COALESCE(
+                                                                                            CASE 
+                                                                                                WHEN jsonb_typeof(spid_val) = 'object' 
+                                                                                                THEN (spid_val->>'quantity')::int
+                                                                                                ELSE NULL
+                                                                                            END, 1
+                                                                                        ),
                                                                                         'firstLoad', COALESCE(
                                                                                             CASE 
                                                                                                 WHEN jsonb_typeof(spid_val) = 'object' 
@@ -1174,6 +1189,7 @@ const productModel = {
                             p.proposal_id,
                             p.proposal_title,
                             p.proposal_type,
+                            p.proposal_status,
                             p.created_at,
                             p.updated_at,
                                     
@@ -1265,6 +1281,13 @@ const productModel = {
                                                                             'wiring_type_id', pc.wiring_type_id,
                                                                             'wiring_type', pc.wiring_name,
                                                                             'images', pc.images,
+                                                                            'quantity', COALESCE(
+                                                                                CASE 
+                                                                                    WHEN jsonb_typeof(pid_val) = 'object' 
+                                                                                    THEN (pid_val->>'quantity')::int
+                                                                                    ELSE NULL
+                                                                                END, 1
+                                                                            ),
                                                                             'firstLoad', COALESCE(
                                                                                 CASE 
                                                                                     WHEN jsonb_typeof(pid_val) = 'object' 
@@ -1331,6 +1354,13 @@ const productModel = {
                                                                                         'wiring_type_id', pc.wiring_type_id,
                                                                                         'wiring_type', pc.wiring_name,
                                                                                         'images', pc.images,
+                                                                                        'quantity', COALESCE(
+                                                                                            CASE 
+                                                                                                WHEN jsonb_typeof(spid_val) = 'object' 
+                                                                                                THEN (spid_val->>'quantity')::int
+                                                                                                ELSE NULL
+                                                                                            END, 1
+                                                                                        ),
                                                                                         'firstLoad', COALESCE(
                                                                                             CASE 
                                                                                                 WHEN jsonb_typeof(spid_val) = 'object' 

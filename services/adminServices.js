@@ -177,7 +177,7 @@ const adminService = {
             };
         }
     },
-
+    
 
     deleteUserById: async (deletedBy, id) => {
         try {
