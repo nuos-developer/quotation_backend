@@ -177,7 +177,7 @@ const adminService = {
             };
         }
     },
-    
+
 
     deleteUserById: async (deletedBy, id) => {
         try {
@@ -355,19 +355,30 @@ const adminService = {
     },
 
 
-    createProductPackages: async (reqBody, userId) => {
+    createRoomPackage: async (reqBody, userId) => {
 
-        return await dbModel.createRoomPackage(reqBody, userId);
+        return await dbModel.createRoomPackage(
+            reqBody,
+            userId
+        );
 
     },
 
-    updateRoomPackage: async (id, reqBody, userId) => {
-        return await dbModel.updateRoomPackage(id, reqBody, userId);
-    },
+  updateRoomPackage: async (packageId, reqBody, userId) => {
 
-    getProductPackage: async (id) => {
-        return await dbModel.getProductPackage(id);
-    },
+    return await dbModel.updateRoomPackage(
+        packageId,
+        reqBody,
+        userId
+    );
+
+},
+
+   getRoomPackages: async () => {
+
+    return await dbModel.getRoomPackages();
+
+},
 
     getProductPackagesData: async (id) => {
         return await dbModel.getProductPackagesData(id);

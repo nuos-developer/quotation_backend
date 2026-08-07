@@ -219,35 +219,36 @@ const productController = {
         }
     },
 
-   updateProposalStatus: async (req, res) => {
-    try {
+    updateProposalStatus: async (req, res) => {
+        try {
 
-        const proposalId = req.params.id;
-        const { proposal_status } = req.body;
-        const userId = req.user.id;
+            const proposalId = req.params.id;
+            const { proposal_status, send_email } = req.body;
+            const userId = req.user.id;
 
-        const data = await productService.updateProposalStatus(
-            proposalId,
-            proposal_status,
-            userId
-        );
+            const data = await productService.updateProposalStatus(
+                proposalId,
+                proposal_status,
+                send_email,
+                userId
+            );
 
-        return res.status(200).json({
-            success: true,
-            message: "Proposal status updated successfully.",
-            data
-        });
+            return res.status(200).json({
+                success: true,
+                message: "Proposal status updated successfully.",
+                data
+            });
 
-    } catch (error) {
+        } catch (error) {
 
-        console.error(error);
+            console.error(error);
 
-        return res.status(500).json({
-            message: error.message
-        });
+            return res.status(500).json({
+                message: error.message
+            });
 
-    }
-},
+        }
+    },
 
     getProposalData: async (req, res) => {
         try {

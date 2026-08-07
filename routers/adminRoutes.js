@@ -62,14 +62,27 @@ router.get(
 );
 
 
-router.post('/create_room_product_package', authMiddleware(), adminController.createProductPackages)
+router.post(
+    "/create_room_package",
+    authMiddleware(),
+    adminController.createRoomPackage
+);
 
-router.get('/get_room_product_packages', authMiddleware(), adminController.getRoomProductPackages)
+
+
+router.get(
+    "/get_room_packages",
+    authMiddleware(),
+    adminController.getRoomPackages
+);
 
 router.get('/get_product_packages', authMiddleware(), adminController.getProductPackagesData)
 
 router.put(
-  "/update_room_package/:id", authMiddleware(), adminController.updateRoomPackage);
+    "/update_room_package/:id",
+    authMiddleware(),
+    adminController.updateRoomPackage
+);
 
 router.delete(
   "/delete_room_package/:id", authMiddleware(), adminController.deleteRoomPackage);

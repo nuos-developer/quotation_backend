@@ -353,7 +353,7 @@ const dbModel = {
         `;
 
 
-      const result = await pool.query(query,  [
+      const result = await pool.query(query, [
         adminId,
         clientCategory || null
       ]);
@@ -604,24 +604,20 @@ const dbModel = {
 
   fetchPermission: async (userId) => {
     const { rows } = await pool.query(
-      `
-    SELECT 
-      m.id AS module_id,
-      m.module_name,
-      r.id AS role_id,
-      r.role_name,
-      p.can_create,
-      p.can_view,
-      p.can_update,
-      p.can_delete
-    FROM permissions p
-    JOIN modules m ON m.id = p.module_id
-    JOIN roles r ON r.id = p.role_id
-    WHERE p.user_id = $1
-    ORDER BY m.id
-    `,
-      [userId]
-    );
+      `SELECT 
+          m.id AS module_id,
+          m.module_name,
+          r.id AS role_id,
+          r.role_name,
+          p.can_create,
+          p.can_view,
+          p.can_update,
+          p.can_delete
+        FROM permissions p
+        JOIN modules m ON m.id = p.module_id
+        JOIN roles r ON r.id = p.role_id
+        WHERE p.user_id = $1
+        ORDER BY m.id`, [userId]);
 
     return { success: true, data: rows };
   },
@@ -921,6 +917,7 @@ const dbModel = {
   },
 
   createRoomPackage: async (body, userId) => {
+    console.log(body);
 
     const client = await pool.connect();
 
@@ -928,120 +925,185 @@ const dbModel = {
 
       await client.query("BEGIN");
 
-      //----------------------------------
-      // Create Room Package
-      //----------------------------------
+      //----------------------------------------
+      // Create Package
+      //----------------------------------------
 
       const packageResult = await client.query(
+
         `
             INSERT INTO product_packages
             (
                 package_id,
                 room_name,
-                panel_mod,
                 created_by
             )
             VALUES
             (
-                $1, $2, $3, $4
+                $1,
+                $2,
+                $3
             )
             RETURNING id
             `,
+
         [
+
           body.package_id,
           body.room_name,
-          body.panel_mod,
-          userId.created_by
+          userId
+
         ]
+
       );
 
       const productPackageId = packageResult.rows[0].id;
 
-      //----------------------------------
-      // Insert Switch Board Products
-      //----------------------------------
-
-      if (
-        Array.isArray(body.switch_board_product_id) &&
-        body.switch_board_product_id.length > 0
-      ) {
-
-        for (const switchBoardProductId of body.switch_board_product_id) {
-
-          await client.query(
-            `
-                    INSERT INTO product_package_products
-                    (
-                        product_package_id,
-                        switch_board_product_id,
-                        room_product_id,
-                        created_by
-                    )
-                    VALUES
-                    (
-                        $1, $2, $3, $4
-                    )
-                    `,
-            [
-              productPackageId,
-              switchBoardProductId,
-              null,
-              userId.created_by
-            ]
-          );
-
-        }
-
-      }
-
-      //----------------------------------
+      //----------------------------------------
       // Insert Room Products
-      //----------------------------------
+      //----------------------------------------
 
       if (
-        Array.isArray(body.room_product_id) &&
-        body.room_product_id.length > 0
+
+        Array.isArray(body.room_products) &&
+        body.room_products.length > 0
+
       ) {
 
-        for (const roomProductId of body.room_product_id) {
+        for (const roomProductId of body.room_products) {
 
           await client.query(
+
             `
-                    INSERT INTO product_package_products
+                    INSERT INTO product_package_room_products
                     (
                         product_package_id,
-                        switch_board_product_id,
                         room_product_id,
                         created_by
                     )
                     VALUES
                     (
-                        $1, $2, $3, $4
+                        $1,
+                        $2,
+                        $3
                     )
                     `,
+
             [
+
               productPackageId,
-              null,
               roomProductId,
-              userId.created_by
+              userId
+
             ]
+
           );
 
         }
 
       }
+
+      //----------------------------------------
+      // Insert Switchboards
+      //----------------------------------------
+
+      if (
+        Array.isArray(body.switchboards) &&
+        body.switchboards.length > 0
+      ) {
+
+        for (const switchboard of body.switchboards) {
+
+          //----------------------------------------
+          // Create Switchboard
+          //----------------------------------------
+
+          const switchboardResult = await client.query(
+            `
+                    INSERT INTO product_package_switchboards
+                    (
+                        product_package_id,
+                        switchboard_name,
+                        panel_mod,
+                        created_by
+                    )
+                    VALUES
+                    (
+                        $1,
+                        $2,
+                        $3,
+                        $4
+                    )
+                    RETURNING id
+                    `,
+            [
+              productPackageId,
+              switchboard.switchboard_name,
+              switchboard.panel_mod,
+              userId
+            ]
+          );
+
+          const switchboardId = switchboardResult.rows[0].id;
+
+          //----------------------------------------
+          // Insert Switchboard Products
+          //----------------------------------------
+
+          if (
+            Array.isArray(switchboard.switch_board_product_id) &&
+            switchboard.switch_board_product_id.length > 0
+          ) {
+
+            for (const productId of switchboard.switch_board_product_id) {
+
+              await client.query(
+                `
+                            INSERT INTO product_package_switchboard_products
+                            (
+                                package_switchboard_id,
+                                switch_board_product_id,
+                                created_by
+                            )
+                            VALUES
+                            (
+                                $1,
+                                $2,
+                                $3
+                            )
+                            `,
+                [
+                  switchboardId,
+                  productId,
+                  userId
+                ]
+              );
+
+            }
+
+          }
+
+        }
+
+      }
+
+      //----------------------------------------
+      // Commit Transaction
+      //----------------------------------------
 
       await client.query("COMMIT");
 
       return {
         success: true,
-        product_package_id: productPackageId
+        product_package_id: productPackageId,
+        message: "Room Package created successfully."
       };
 
     } catch (error) {
+      console.log(error);
+
 
       await client.query("ROLLBACK");
-      console.error("createRoomPackage Error:", error);
       throw error;
 
     } finally {
@@ -1052,7 +1114,7 @@ const dbModel = {
 
   },
 
-  updateRoomPackage: async (id, reqBody, userId) => {
+  updateRoomPackage: async (packageId, body, userId) => {
 
     const client = await pool.connect();
 
@@ -1060,129 +1122,280 @@ const dbModel = {
 
       await client.query("BEGIN");
 
-      const {
-        package_id,
-        room_name,
-        panel_mod,
-        switch_board_product_id = [],
-        room_product_id = []
-      } = reqBody;
+      //-------------------------------------
+      // Check Package Exists
+      //-------------------------------------
 
-      // Check package exists
-      const packageResult = await client.query(
+      const packageExist = await client.query(
+
         `
             SELECT id
             FROM product_packages
-            WHERE id = $1
+            WHERE
+                id=$1
+                AND deleted_by IS NULL
             `,
-        [id]
+
+        [packageId]
+
       );
 
-      if (packageResult.rowCount === 0) {
+      if (packageExist.rowCount === 0) {
+
         throw new Error("Package not found.");
+
       }
 
-      // Update package details
+      //-------------------------------------
+      // Update Package
+      //-------------------------------------
+
       await client.query(
+
         `
             UPDATE product_packages
+
             SET
-                package_id = $1,
-                room_name = $2,
-                panel_mod = $3,
-                updated_by = $4,
-                updated_at = NOW()
-            WHERE id = $5
+
+                package_id=$1,
+
+                room_name=$2,
+
+                updated_by=$3,
+
+                updated_at=NOW()
+
+            WHERE id=$4
             `,
+
         [
-          package_id,
-          room_name,
-          panel_mod,
+
+          body.package_id,
+
+          body.room_name,
+
           userId,
-          id
+
+          packageId
+
         ]
+
       );
 
-      // Delete existing product mappings
+      //-------------------------------------
+      // Delete Old Room Products
+      //-------------------------------------
+
       await client.query(
+
         `
-            DELETE FROM product_package_products
-            WHERE product_package_id = $1
+            DELETE FROM product_package_room_products
+
+            WHERE product_package_id=$1
             `,
-        [id]
+
+        [
+
+          packageId
+
+        ]
+
       );
 
-      // Insert Switch Board Products
-      if (Array.isArray(switch_board_product_id) && switch_board_product_id.length > 0) {
+      //-------------------------------------
+      // Insert Room Products
+      //-------------------------------------
 
-        for (const productId of switch_board_product_id) {
+      if (
+
+        Array.isArray(body.room_products) &&
+        body.room_products.length > 0
+
+      ) {
+
+        for (const roomProductId of body.room_products) {
 
           await client.query(
+
             `
-                    INSERT INTO product_package_products
+                    INSERT INTO product_package_room_products
+                    (
+
+                        product_package_id,
+
+                        room_product_id,
+
+                        created_by
+
+                    )
+
+                    VALUES
+
+                    (
+
+                        $1,
+
+                        $2,
+
+                        $3
+
+                    )
+                    `,
+
+            [
+
+              packageId,
+
+              roomProductId,
+
+              userId
+
+            ]
+
+          );
+
+        }
+
+      }
+
+      //-------------------------------------
+      // Switchboard update starts
+      //-------------------------------------
+
+      //-------------------------------------
+      // Delete Old Switchboard Products
+      //-------------------------------------
+
+      await client.query(
+        `
+            DELETE FROM product_package_switchboard_products
+            WHERE package_switchboard_id IN
+            (
+                SELECT id
+                FROM product_package_switchboards
+                WHERE product_package_id = $1
+            )
+            `,
+        [packageId]
+      );
+
+      //-------------------------------------
+      // Delete Old Switchboards
+      //-------------------------------------
+
+      await client.query(
+        `
+            DELETE FROM product_package_switchboards
+            WHERE product_package_id = $1
+            `,
+        [packageId]
+      );
+
+      //-------------------------------------
+      // Insert Switchboards
+      //-------------------------------------
+
+      if (
+        Array.isArray(body.switchboards) &&
+        body.switchboards.length > 0
+      ) {
+
+        for (const switchboard of body.switchboards) {
+
+          //-------------------------------------
+          // Create Switchboard
+          //-------------------------------------
+
+          const switchboardResult = await client.query(
+            `
+                    INSERT INTO product_package_switchboards
                     (
                         product_package_id,
-                        switch_board_product_id,
-                        room_product_id
+                        switchboard_name,
+                        panel_mod,
+                        created_by
                     )
                     VALUES
                     (
                         $1,
                         $2,
-                        NULL
+                        $3,
+                        $4
                     )
+                    RETURNING id
                     `,
             [
-              id,
-              productId
+              packageId,
+              switchboard.switchboard_name,
+              switchboard.panel_mod,
+              userId
             ]
           );
+
+          const switchboardId = switchboardResult.rows[0].id;
+
+          //-------------------------------------
+          // Insert Switchboard Products
+          //-------------------------------------
+
+          if (
+            Array.isArray(switchboard.switch_board_product_id) &&
+            switchboard.switch_board_product_id.length > 0
+          ) {
+
+            for (const productId of switchboard.switch_board_product_id) {
+
+              await client.query(
+                `
+                            INSERT INTO product_package_switchboard_products
+                            (
+                                package_switchboard_id,
+                                switch_board_product_id,
+                                created_by
+                            )
+                            VALUES
+                            (
+                                $1,
+                                $2,
+                                $3
+                            )
+                            `,
+                [
+                  switchboardId,
+                  productId,
+                  userId
+                ]
+              );
+
+            }
+
+          }
 
         }
 
       }
 
-      // Insert Room Products
-      if (Array.isArray(room_product_id) && room_product_id.length > 0) {
-
-        for (const productId of room_product_id) {
-
-          await client.query(
-            `
-                    INSERT INTO product_package_products
-                    (
-                        product_package_id,
-                        switch_board_product_id,
-                        room_product_id
-                    )
-                    VALUES
-                    (
-                        $1,
-                        NULL,
-                        $2
-                    )
-                    `,
-            [
-              id,
-              productId
-            ]
-          );
-
-        }
-
-      }
+      //-------------------------------------
+      // Commit Transaction
+      //-------------------------------------
 
       await client.query("COMMIT");
 
       return {
+
         success: true,
-        message: "Package updated successfully."
+
+        message: "Room Package updated successfully.",
+
+        product_package_id: packageId
+
       };
 
-    } catch (err) {
+    } catch (error) {
 
       await client.query("ROLLBACK");
-      throw err;
+
+      throw error;
 
     } finally {
 
@@ -1192,108 +1405,107 @@ const dbModel = {
 
   },
 
-  getProductPackage: async (id) => {
-
+  getRoomPackages: async () => {
     try {
-
       const query = `
             SELECT
-                pp.id,
-                pp.room_name,
-                pp.panel_mod,
-                p.id AS package_id,
-                p.package_name,
+            pp.id,
+            pp.package_id,
+            p.package_name,
+            pp.room_name,
+            ---------------------------------------
+            -- ROOM PRODUCTS
+            ---------------------------------------
+            (
+                SELECT json_agg(
+                    json_build_object(
+                        'id',pr.id,
+                        'product_name',pr.product_name,
+                        'price',ROUND(pr.price::numeric)::INTEGER,
+                        'category',pr.category,
+                        'mod_size',pr.mod_size,
+                        'wiring_type',wt.wiring_type,
+                        'image_url',
+                        (
+                            SELECT image_url
+                            FROM product_images
+                            WHERE product_id=pr.id
+                            LIMIT 1
+                        )
+                    )
+                )
+                FROM product_package_room_products rp
+                INNER JOIN products pr
+                    ON pr.id=rp.room_product_id
+                LEFT JOIN wiring_types wt
+                    ON wt.id=pr.wiring_type_id
+                WHERE rp.product_package_id=pp.id
+            ) AS room_products,
+            ---------------------------------------
+            -- SWITCHBOARDS
+            ---------------------------------------
 
-                --------------------------------------
-                -- Switch Board Products
-                --------------------------------------
-                (
-                    SELECT COALESCE(
-                        json_agg(
-                            json_build_object(
-                                'id', pr.id,
-                                'product_name', pr.product_name,
-                                'price', pr.price,
-                                'category', pr.category,
-                                'mod_size', pr.mod_size,
-                                'zigbee_type', pr.zigbee_type,
-                                'switch_load_count', pr.switch_load_count,
-                                'wiring_type', wt.wiring_type,
-                                'image_url',
-                                (
-                                    SELECT pi.image_url
-                                    FROM product_images pi
-                                    WHERE pi.product_id = pr.id
-                                    LIMIT 1
+            (
+
+                SELECT json_agg(
+
+                    json_build_object(
+
+                        'id',ps.id,
+
+                        'switchboard_name',ps.switchboard_name,
+
+                        'panel_mod',ps.panel_mod,
+
+                        'products',
+
+                        (
+
+                            SELECT json_agg(
+
+                                json_build_object(
+                                    'id',pr.id,
+                                    'product_name',pr.product_name,
+                                    'price',ROUND(pr.price::numeric)::INTEGER,
+                                    'category',pr.category,
+                                    'mod_size',pr.mod_size,
+                                    'wiring_type',wt.wiring_type,
+                                    'image_url',
+                                    (
+                                        SELECT image_url
+                                        FROM product_images
+                                        WHERE product_id=pr.id
+                                        LIMIT 1
+                                    )
                                 )
                             )
-                            ORDER BY pr.id
-                        ),
-                        '[]'::json
+                            FROM product_package_switchboard_products spp
+                            INNER JOIN products pr
+                                ON pr.id=spp.switch_board_product_id
+                            LEFT JOIN wiring_types wt
+                                ON wt.id=pr.wiring_type_id
+                            WHERE spp.package_switchboard_id=ps.id
+                        )
                     )
-                    FROM product_package_products ppp
-                    JOIN products pr
-                        ON pr.id = ppp.switch_board_product_id
-                    LEFT JOIN wiring_types wt
-                        ON wt.id = pr.wiring_type_id
-                    WHERE ppp.product_package_id = pp.id
-                      AND ppp.switch_board_product_id IS NOT NULL
-                ) AS switch_board_products,
-
-                --------------------------------------
-                -- Room Products
-                --------------------------------------
-                (
-                    SELECT COALESCE(
-                        json_agg(
-                            json_build_object(
-                                'id', pr.id,
-                                'product_name', pr.product_name,
-                                'price', pr.price,
-                                'category', pr.category,
-                                'mod_size', pr.mod_size,
-                                'zigbee_type', pr.zigbee_type,
-                                'switch_load_count', pr.switch_load_count,
-                                'wiring_type', wt.wiring_type,
-                                'image_url',
-                                (
-                                    SELECT pi.image_url
-                                    FROM product_images pi
-                                    WHERE pi.product_id = pr.id
-                                    
-                                )
-                            )
-                            ORDER BY pr.id
-                        ),
-                        '[]'::json
-                    )
-                    FROM product_package_products ppp
-                    JOIN products pr
-                        ON pr.id = ppp.room_product_id
-                    LEFT JOIN wiring_types wt
-                        ON wt.id = pr.wiring_type_id
-                    WHERE ppp.product_package_id = pp.id
-                      AND ppp.room_product_id IS NOT NULL
-                ) AS room_products
-
-            FROM product_packages pp
-
-            JOIN packages p
-                ON p.id = pp.package_id WHERE pp.deleted_by IS NULL
-
+                )
+                FROM product_package_switchboards ps
+                WHERE ps.product_package_id=pp.id
+            ) AS switchboards
+        FROM product_packages pp
+        INNER JOIN packages p
+            ON p.id=pp.package_id
+        WHERE pp.deleted_by IS NULL
+        ORDER BY pp.id DESC
         `;
 
       const result = await pool.query(query);
 
-      if (result.rows.length === 0) {
-        throw new Error("Package not found");
-      }
-
       return result.rows;
 
     } catch (error) {
-      console.error(error);
+
       throw error;
+
     }
 
   },

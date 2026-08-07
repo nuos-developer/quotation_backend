@@ -779,21 +779,22 @@ const productModel = {
         }
     },
 
-    updateProposalStatus: async (proposalId, proposalStatus, userId) => {
+    updateProposalStatus: async (proposalId, proposalStatus,send_email, userId) => {
         const client = await pool.connect();
         try {
             await client.query("BEGIN");
             const query = `
             UPDATE proposals
             SET
-                proposal_status = $1,
+                proposal_status = $1, send_email = $2,
                 updated_at = NOW()
-            WHERE client_id = $2
+            WHERE id = $3
             RETURNING *;
         `;
             const values = [
                 proposalStatus,
                 // userId,
+                send_email,
                 proposalId
             ];
             console.log(values);

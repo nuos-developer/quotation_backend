@@ -241,10 +241,11 @@ const productService = {
         }
     },
 
-    updateProposalStatus: async (proposalId, proposalStatus, userId) => {
+    updateProposalStatus: async (proposalId, proposalStatus,send_email, userId) => {
         return await productModel.updateProposalStatus(
             proposalId,
             proposalStatus,
+            send_email,
             userId
         );
     },

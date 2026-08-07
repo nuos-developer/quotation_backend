@@ -276,42 +276,58 @@ const adminController = {
         res.json(result);
     },
 
-    createProductPackages: async (req, res) => {
+    createRoomPackage: async (req, res) => {
 
         try {
-            const userId = req.user
 
-            const result = await adminService.createProductPackages(req.body, userId);
+            const userId = req.user.id;
+            // console.log(':>>>>>>>>>>>', req.body);
+
+
+            const result = await adminService.createRoomPackage(
+                req.body,
+                userId
+            );
 
             return res.status(201).json({
+
                 success: true,
-                message: "Product Package Created Successfully",
+                message: "Room Package created successfully.",
                 data: result
+
             });
 
-        } catch (error) {
+        }
+        catch (error) {
+
+            console.error(error);
 
             return res.status(500).json({
+
                 success: false,
                 message: error.message
+
             });
+
         }
+
     },
 
-    getRoomProductPackages: async (req, res) => {
+    getRoomPackages: async (req, res) => {
 
         try {
 
-            const result = await adminService.getProductPackage(
-                req.params.id
-            );
+            const result = await adminService.getRoomPackages();
 
             return res.status(200).json({
                 success: true,
+                message: "Room Packages fetched successfully.",
                 data: result
             });
 
         } catch (error) {
+
+            console.error(error);
 
             return res.status(500).json({
                 success: false,
@@ -347,22 +363,40 @@ const adminController = {
     },
 
     updateRoomPackage: async (req, res) => {
+
         try {
-            const userId = req.user.id
-            const id = req.params.id;
-            const result = await adminService.updateRoomPackage(id, req.body, userId);
+
+            const packageId = req.params.id;
+
+            const userId = req.user.id;
+
+            const result = await adminService.updateRoomPackage(
+                packageId,
+                req.body,
+                userId
+            );
+
             return res.status(200).json({
+
                 success: true,
-                message: "Package updated successfully.",
+                message: "Room Package updated successfully.",
                 data: result
+
             });
+
         } catch (error) {
+
             console.error(error);
+
             return res.status(500).json({
+
                 success: false,
                 message: error.message
+
             });
+
         }
+
     },
 
     deleteRoomPackage: async (req, res) => {
