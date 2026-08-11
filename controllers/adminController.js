@@ -258,7 +258,7 @@ const adminController = {
 
     getDashboardGraphCount: async (req, res) => {
         try {
-            const graph = req.query.graph || 'month';
+            const graph = req.query.graph || 'day';
             const result = await adminService.getDashboardGraphCount(graph);
             res.status(HttpStatus.OK).json(result);
         } catch (error) {

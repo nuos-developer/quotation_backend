@@ -741,29 +741,40 @@ const dbModel = {
 
   getDashboardGraph: async (graph) => {
 
-
     try {
 
-      let proposalGraphQuery = "";
+        let proposalGraphQuery = "";
 
-      switch (graph) {
+        switch (graph) {
 
-        case "day":
+            // ============================================
+            // Last 30 Days
+            // ============================================
+            case "day":
 
-          proposalGraphQuery = `
+                proposalGraphQuery = `
                     SELECT
-                        TO_CHAR(created_at,'DD Mon YYYY') AS label,
-                        COUNT(*)::INT AS proposal_count
+                        TO_CHAR(created_at, 'DD Mon YYYY') AS label,
+                        COUNT(*)::INT AS proposal_count,
+                        DATE(created_at) AS sort_date
                     FROM proposals
-                    WHERE deleted_at IS NULL
-                    GROUP BY DATE(created_at),TO_CHAR(created_at,'DD Mon YYYY')
-                    ORDER BY DATE(created_at);
+                    WHERE
+                        deleted_at IS NULL
+                        AND created_at >= CURRENT_DATE - INTERVAL '29 days'
+                    GROUP BY
+                        DATE(created_at),
+                        TO_CHAR(created_at, 'DD Mon YYYY')
+                    ORDER BY
+                        sort_date;
                 `;
-          break;
+                break;
 
-        case "week":
+            // ============================================
+            // Last 5 Weeks
+            // ============================================
+            case "week":
 
-          proposalGraphQuery = `
+                proposalGraphQuery = `
                     SELECT
                         CONCAT(
                             EXTRACT(YEAR FROM created_at),
@@ -773,105 +784,122 @@ const dbModel = {
 
                         COUNT(*)::INT AS proposal_count,
 
-                        MIN(created_at) sort_date
+                        DATE_TRUNC('week', created_at) AS sort_date
 
                     FROM proposals
 
-                    WHERE deleted_at IS NULL
+                    WHERE
+                        deleted_at IS NULL
+                        AND created_at >= DATE_TRUNC('week', CURRENT_DATE) - INTERVAL '4 weeks'
 
                     GROUP BY
                         EXTRACT(YEAR FROM created_at),
-                        EXTRACT(WEEK FROM created_at)
+                        EXTRACT(WEEK FROM created_at),
+                        DATE_TRUNC('week', created_at)
 
-                    ORDER BY sort_date;
+                    ORDER BY
+                        sort_date;
                 `;
-          break;
+                break;
 
-        case "month":
+            // ============================================
+            // Last 6 Months
+            // ============================================
+            case "month":
 
-          proposalGraphQuery = `
+                proposalGraphQuery = `
                     SELECT
-
-                        TO_CHAR(created_at,'Mon YYYY') AS label,
+                        TO_CHAR(created_at, 'Mon YYYY') AS label,
 
                         COUNT(*)::INT AS proposal_count,
 
-                        DATE_TRUNC('month',created_at) sort_date
+                        DATE_TRUNC('month', created_at) AS sort_date
 
                     FROM proposals
 
-                    WHERE deleted_at IS NULL
+                    WHERE
+                        deleted_at IS NULL
+                        AND created_at >= DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '5 months'
 
                     GROUP BY
-                        DATE_TRUNC('month',created_at),
-                        TO_CHAR(created_at,'Mon YYYY')
+                        DATE_TRUNC('month', created_at),
+                        TO_CHAR(created_at, 'Mon YYYY')
 
-                    ORDER BY sort_date;
+                    ORDER BY
+                        sort_date;
                 `;
-          break;
+                break;
 
-        case "year":
+            // ============================================
+            // Last 5 Years
+            // ============================================
+            case "year":
 
-          proposalGraphQuery = `
+                proposalGraphQuery = `
                     SELECT
 
                         EXTRACT(YEAR FROM created_at)::TEXT AS label,
 
-                        COUNT(*)::INT AS proposal_count
+                        COUNT(*)::INT AS proposal_count,
+
+                        EXTRACT(YEAR FROM created_at) AS sort_year
 
                     FROM proposals
 
-                    WHERE deleted_at IS NULL
+                    WHERE
+                        deleted_at IS NULL
+                        AND created_at >= DATE_TRUNC('year', CURRENT_DATE) - INTERVAL '4 years'
 
-                    GROUP BY EXTRACT(YEAR FROM created_at)
+                    GROUP BY
+                        EXTRACT(YEAR FROM created_at)
 
-                    ORDER BY EXTRACT(YEAR FROM created_at);
+                    ORDER BY
+                        sort_year;
                 `;
-          break;
+                break;
 
-        default:
+            // ============================================
+            // Default (Last 6 Months)
+            // ============================================
+            default:
 
-          proposalGraphQuery = `
+                proposalGraphQuery = `
                     SELECT
-
-                        TO_CHAR(created_at,'Mon YYYY') AS label,
+                        TO_CHAR(created_at, 'Mon YYYY') AS label,
 
                         COUNT(*)::INT AS proposal_count,
 
-                        DATE_TRUNC('month',created_at) sort_date
+                        DATE_TRUNC('month', created_at) AS sort_date
 
                     FROM proposals
 
-                    WHERE deleted_at IS NULL
+                    WHERE
+                        deleted_at IS NULL
+                        AND created_at >= DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '5 months'
 
                     GROUP BY
-                        DATE_TRUNC('month',created_at),
-                        TO_CHAR(created_at,'Mon YYYY')
+                        DATE_TRUNC('month', created_at),
+                        TO_CHAR(created_at, 'Mon YYYY')
 
-                    ORDER BY sort_date;
+                    ORDER BY
+                        sort_date;
                 `;
-      }
+        }
 
-      const [
-        proposalGraphResult
-      ] = await Promise.all([
-        pool.query(proposalGraphQuery)
+        const proposalGraphResult = await pool.query(proposalGraphQuery);
 
-      ]);
-
-      return {
-        proposalGraph: proposalGraphResult.rows
-
-      };
+        return {
+            proposalGraph: proposalGraphResult.rows
+        };
 
     } catch (error) {
 
-      console.log(error);
-
-      throw error;
+        console.error(error);
+        throw error;
 
     }
-  },
+
+},
 
   updateUserPermission: async (data, userId) => {
     const { module_id, permissions } = data;
