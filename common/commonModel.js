@@ -184,6 +184,30 @@ const commDbModel = {
         }
     },
 
+    getLeads: async () => {
+        try {
+            const result = await pool.query(
+                `SELECT ls.id, ls.lead_status FROM lead_status ls where ls.is_active = true ORDER BY ls.id ASC;`
+            );
+            return result.rows;
+        } catch (error) {
+            console.error('DB Error (getLeads):', error);
+            throw error;
+        }
+    },
+
+    getReference: async () => {
+        try {
+            const result = await pool.query(
+                `SELECT lr.id, lr.lead_reference FROM lead_reference lr where lr.is_active = true ORDER BY lr.id ASC;`
+            );
+            return result.rows;
+        } catch (error) {
+            console.error('DB Error (getReference):', error);
+            throw error;
+        }
+    },
+
 
 
     checkUserId: async (userId) => {

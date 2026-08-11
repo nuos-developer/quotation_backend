@@ -90,6 +90,9 @@ const userController = {
             const clientId = req.params.id;
             const data = req.body;
 
+            console.log('data :>>>>>',data );
+            
+
             const result = await userService.updateClient(userId, clientId, data);
 
             if (!result.success) {

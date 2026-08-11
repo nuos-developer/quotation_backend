@@ -114,6 +114,25 @@ const commonServices = {
         }
     },
 
+    getLeads: async () => {
+        try {
+            const leads = await commDbModel.getLeads();
+            return leads;
+        } catch (error) {
+            console.error('Service Error (getLeads):', error);
+            throw error;
+        }
+    },
+    getReference: async () => {
+        try {
+            const reference = await commDbModel.getReference();
+            return reference;
+        } catch (error) {
+            console.error('Service Error (getReference):', error);
+            throw error;
+        }
+    },
+
 
     addWire: async (userId, wireData) => {
         try {

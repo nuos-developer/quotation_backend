@@ -334,11 +334,17 @@ const dbModel = {
               c.site_contractor_name,
               c.site_contractor_phone,
               c.architect_name,
-              c.architect_phone
+              c.architect_phone, 
+              ls.lead_status,
+              c.lead_status_id,
+              c.reference_id,
+              lr.lead_reference
 
           FROM clients c
           INNER JOIN users u ON c.user_id = u.id
           INNER JOIN roles r ON r.id = u.role_id 
+           LEFT join lead_status ls on ls.id = c.lead_status_id 
+          LEFT join lead_reference lr on lr.id = c.reference_id 
            WHERE
                 c.deleted_by IS NULL
                 AND (

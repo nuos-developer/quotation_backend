@@ -298,6 +298,44 @@ const commonController = {
             });
         }
     },
+    
+    getLeadStatus: async (req, res) => {
+        try {
+            const leads = await commonServices.getLeads();
+
+            if (!leads || leads.length === 0) {
+                return res.status(HttpStatus.NOT_FOUND).json({ success: false, message: 'No Channels found', });
+            }
+            return res.status(HttpStatus.OK).json({
+                success: true, message: 'Lead fetched successfully', data: leads,
+            });
+        } catch (error) {
+            return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+                success: false,
+                message: HttpMessage.INTERNAL_SERVER_ERROR,
+                error: error.message,
+            });
+        }
+    },
+
+    getReference: async (req, res) => {
+        try {
+            const reference = await commonServices.getReference();
+
+            if (!reference || reference.length === 0) {
+                return res.status(HttpStatus.NOT_FOUND).json({ success: false, message: 'No Channels found', });
+            }
+            return res.status(HttpStatus.OK).json({
+                success: true, message: 'References fetched successfully', data: reference,
+            });
+        } catch (error) {
+            return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+                success: false,
+                message: HttpMessage.INTERNAL_SERVER_ERROR,
+                error: error.message,
+            });
+        }
+    },
 
 
     addWire: async (req, res) => {

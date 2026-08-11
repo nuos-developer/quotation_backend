@@ -343,16 +343,15 @@ const userModel = {
                         installation_rep_in_charge, lead_source,
                         date_of_installation,
                         site_contractor_name, site_contractor_phone,
-                        architect_name, architect_phone, client_category, iso_code
+                        architect_name, architect_phone, client_category, iso_code, lead_status_id, reference_id
                       )
                       VALUES (
                         $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,
                         $12,$13,$14,$15,$16,$17,$18,$19,$20,
-                        $21,$22,$23,$24, $25, $26, $27, $28
+                        $21,$22,$23,$24, $25, $26, $27, $28, $29, $30
                       )
                       RETURNING *;
                     `;
-
             const values = [
                 userId,
                 client_id,
@@ -384,7 +383,10 @@ const userModel = {
                 data.architect_name || null,
                 data.architect_phone || null,
                 data.client_category || null,
-                data.iso_code || null
+                data.iso_code || null,
+                data.lead_status_id || null,
+                data.reference_id || null
+
             ];
 
             const result = await client.query(query, values);
@@ -436,8 +438,10 @@ const userModel = {
         architect_phone = $24,
         client_category = $25,
         iso_code = $26,
+        lead_status_id = $27,
+        reference_id = $28,
         updated_at = CURRENT_TIMESTAMP   -- ✅ FIXED comma
-      WHERE id = $27
+      WHERE id = $29
       RETURNING *;
     `;
 
@@ -470,6 +474,8 @@ const userModel = {
                 data.architect_phone || null,
                 data.client_category || null,
                 data.iso_code || null,
+                data.lead_status_id || null,
+                data.reference_id || null,
                 clientId
             ];
 

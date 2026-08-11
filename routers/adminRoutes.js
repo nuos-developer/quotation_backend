@@ -31,6 +31,10 @@ router.get('/getModule', authMiddleware(), commController.getModules)
 
 router.get('/roles', authMiddleware(), commController.getRoles)
 
+router.get('/get_lead_status', commController.getLeadStatus)
+
+router.get('/get_reference', commController.getReference)
+
 
 router.post(
   '/assign_access',
