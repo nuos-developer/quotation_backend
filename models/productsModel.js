@@ -779,7 +779,7 @@ const productModel = {
         }
     },
 
-    updateProposalStatus: async (proposalId, proposalStatus,send_email, userId) => {
+    updateProposalStatus: async (proposalId, proposalStatus, send_email, userId) => {
         const client = await pool.connect();
         try {
             await client.query("BEGIN");
@@ -817,303 +817,320 @@ const productModel = {
         try {
             const result = await pool.query(
                 `WITH product_cache AS (
-                            SELECT
-                                p.id,
-                                p.product_name,
-                                p.category,
-                                p.price,
-                                p.mod_size,
-                                p.wiring_type_id,
-                                wt.wiring_name,
-                                COALESCE(
-                                    jsonb_agg(
-                                        DISTINCT pi.image_url
-                                    ) FILTER (WHERE pi.image_url IS NOT NULL),
-                                    '[]'::jsonb
-                                ) AS images
-                            FROM products p
-                            LEFT JOIN wiring_types wt ON wt.id = p.wiring_type_id
-                            LEFT JOIN product_images pi ON pi.product_id = p.id
-                            GROUP BY p.id, wt.wiring_name
-                        ),
-                                    
-                        products_wise_cache AS (
-                            SELECT
-                                p.id AS proposal_id,
-                                jsonb_agg(
-                                    jsonb_build_object(
-                                        'id', pc.id,
-                                        'name', pc.product_name,
-                                        'category', pc.category,
-                                        'price', pc.price,
-                                        'quantity', (item_val->>'quantity')::int,
-                                        'wiring_type_id', pc.wiring_type_id,
-                                        'wiring_type', pc.wiring_name,
-                                        'images', pc.images
-                                    ) ORDER BY item_idx
-                                ) AS products_list
-                            FROM proposals p
-                            CROSS JOIN jsonb_array_elements(
-                                COALESCE(p.products_wise_items, '[]'::jsonb)
-                            ) WITH ORDINALITY AS t(item_val, item_idx)
-                            JOIN product_cache pc ON pc.id = (item_val->>'id')::int
-                            WHERE p.proposal_type = 'productsWise'
-                            AND p.deleted_at IS NULL
-                            GROUP BY p.id
-                        )
-                                    
-                        SELECT
-                            p.id,
-                            p.proposal_id,
-                            p.proposal_title,
-                            p.proposal_type,
-                            p.proposal_status,
-                            p.created_at,
-                            p.updated_at,
-                                    
-                            floors.floor,
-                                    
-                            CASE 
-                                WHEN p.proposal_type = 'productsWise' 
-                                THEN pwc.products_list
-                                ELSE NULL
-                            END AS products_wise_items,
-                                    
-                            p.commissioning_percentage,
-                            p.discount_percentage,
-                            p.financial_breakdown,
-                            p.grand_total,
-                            p.installation_percentage,
-                            p.recipient_name,
-                            p.ship_to_address,
-                            p.use_same_address,
-                            p.use_same_recipient,
-                                    
+                    SELECT
+                        p.id,
+                        p.product_name,
+                        p.category,
+                        p.price,
+                        p.mod_size,
+                        p.wiring_type_id,
+                        wt.wiring_name,
+                        COALESCE(
+                            jsonb_agg(
+                                DISTINCT pi.image_url
+                            ) FILTER (WHERE pi.image_url IS NOT NULL),
+                            '[]'::jsonb
+                        ) AS images
+                    FROM products p
+                    LEFT JOIN wiring_types wt ON wt.id = p.wiring_type_id
+                    LEFT JOIN product_images pi ON pi.product_id = p.id
+                    GROUP BY p.id, wt.wiring_name
+                ),
+
+                products_wise_cache AS (
+                    SELECT
+                        p.id AS proposal_id,
+                        jsonb_agg(
                             jsonb_build_object(
-                                'id', c.id,
-                                'client_id', c.client_id,
-                                'first_name', c.first_name,
-                                'last_name', c.last_name,
-                                'email', c.email_id,
-                                'mobile', c.mobile_number,
-                                'address_line_one', c.address_line_one,
-                                'pin_code', c.pin_code,
-                                'country', c.country,
-                                'state', c.state,
-                                'district', c.district,
-                                'taluk', c.taluk,
-                                'division', c.division,
-                                'region', c.region,
-                                'company_name', c.company_name,
-                                'gst', c.gst,
-                                'company_address', c.company_address,
-                                'created_at', c.created_at,
-                                'updated_at', c.updated_at,
-                                'deleted_by', c.deleted_by,
-                                'deleted_at', c.deleted_at,
-                                'salesrepincharge', c.salesrepincharge,
-                                'installation_rep_in_charge', c.installation_rep_in_charge,
-                                'lead_source', c.lead_source,
-                                'date_of_installation', c.date_of_installation,
-                                'site_contractor_name', c.site_contractor_name,
-                                'site_contractor_phone', c.site_contractor_phone,
-                                'architect_name', c.architect_name,
-                                'architect_phone', c.architect_phone,
-                                'address_line_two', c.address_line_two
-                            ) AS client_details,
-                                    
+                                'id', pc.id,
+                                'name', pc.product_name,
+                                'category', pc.category,
+                                'price', pc.price,
+                                'quantity', (item_val->>'quantity')::int,
+                                'wiring_type_id', pc.wiring_type_id,
+                                'wiring_type', pc.wiring_name,
+                                'images', pc.images
+                            ) ORDER BY item_idx
+                        ) AS products_list
+                    FROM proposals p
+                    CROSS JOIN jsonb_array_elements(
+                        COALESCE(p.products_wise_items, '[]'::jsonb)
+                    ) WITH ORDINALITY AS t(item_val, item_idx)
+                    JOIN product_cache pc ON pc.id = (item_val->>'id')::int
+                    WHERE p.proposal_type = 'productsWise'
+                    AND p.deleted_at IS NULL
+                    GROUP BY p.id
+                ),
+
+                package_cache AS (
+                    SELECT 
+                        pp.id AS package_id,
+                        pp.room_name
+                    FROM product_packages pp
+                    WHERE pp.deleted_at IS NULL
+                )
+
+                SELECT
+                    p.id,
+                    p.proposal_id,
+                    p.proposal_title,
+                    p.proposal_type,
+                    p.proposal_status,
+                    p.created_at,
+                    p.updated_at,
+
+                    (
+                        SELECT jsonb_agg(
                             jsonb_build_object(
-                                'id', u.id,
-                                'user_name', u.user_name,
-                                'role', jsonb_build_object(
-                                    'role_id', r.id,
-                                    'role_name', r.role_name
-                                )
-                            ) AS created_by
-                                    
-                        FROM proposals p
-                                    
-                        LEFT JOIN LATERAL (
-                            SELECT jsonb_agg(
-                                jsonb_build_object(
-                                    'name', fl_val->>'name',
-                                    'homes', (
-                                        SELECT jsonb_agg(
-                                            jsonb_build_object(
-                                                'name', hm_val->>'name',
-                                                'rooms', (
-                                                    SELECT jsonb_agg(
-                                                        jsonb_build_object(
-                                                            'name', rm_val->>'name',
-                                    
-                                                            -- ✅ ROOM PRODUCTS - ORDER PRESERVED
-                                                            'products', COALESCE(
-                                                                (
-                                                                    SELECT jsonb_agg(
-                                                                        jsonb_build_object(
-                                                                            'id', pc.id,
-                                                                            'name', pc.product_name,
-                                                                            'category', pc.category,
-                                                                            'price', pc.price,
-                                                                            'modSize', pc.mod_size,
-                                                                            'wiring_type_id', pc.wiring_type_id,
-                                                                            'wiring_type', pc.wiring_name,
-                                                                            'images', pc.images,
-                                                                            'quantity', COALESCE(   --this type of added when json filed added
-                                                                                CASE 
-                                                                                    WHEN jsonb_typeof(pid_val) = 'object' 
-                                                                                    THEN (pid_val->>'quantity')::int
-                                                                                    ELSE NULL
-                                                                                END, 1
-                                                                            ),
-                                                                            'firstLoad', COALESCE(
-                                                                                CASE 
-                                                                                    WHEN jsonb_typeof(pid_val) = 'object' 
-                                                                                    THEN pid_val->>'firstLoad'
-                                                                                    ELSE ''
-                                                                                END, ''
-                                                                            ),
-                                                                            'secondLoad', COALESCE(
-                                                                                CASE 
-                                                                                    WHEN jsonb_typeof(pid_val) = 'object' 
-                                                                                    THEN pid_val->>'secondLoad'
-                                                                                    ELSE ''
-                                                                                END, ''
-                                                                            ),
-                                                                            'thirdLoad', COALESCE(
-                                                                                CASE 
-                                                                                    WHEN jsonb_typeof(pid_val) = 'object' 
-                                                                                    THEN pid_val->>'thirdLoad'
-                                                                                    ELSE ''
-                                                                                END, ''
-                                                                            ),
-                                                                            'forthLoad', COALESCE(
-                                                                                CASE 
-                                                                                    WHEN jsonb_typeof(pid_val) = 'object' 
-                                                                                    THEN pid_val->>'forthLoad'
-                                                                                    ELSE ''
-                                                                                END, ''
-                                                                            )
-                                                                        ) ORDER BY pid_idx
-                                                                    )
-                                                                    FROM jsonb_array_elements(
-                                                                        COALESCE(rm_val->'products', '[]'::jsonb)
-                                                                    ) WITH ORDINALITY AS t(pid_val, pid_idx)
-                                                                    JOIN product_cache pc ON pc.id = (
-                                                                        CASE 
-                                                                            WHEN jsonb_typeof(pid_val) = 'number' 
-                                                                            THEN pid_val::text::int
-                                                                            WHEN jsonb_typeof(pid_val) = 'object' 
-                                                                            THEN (pid_val->>'id')::int
-                                                                        END
-                                                                    )
-                                                                ),
-                                                                '[]'::jsonb
+                                'name', fl_val->>'name',
+                                'homes', (
+                                    SELECT jsonb_agg(
+                                        jsonb_build_object(
+                                            'name', hm_val->>'name',
+                                            'rooms', (
+                                                SELECT jsonb_agg(
+                                                    jsonb_build_object(
+                                                        'name', rm_val->>'name',
+                                                        'pkgId', CASE 
+                                                            WHEN rm_val->>'pkgId' IS NOT NULL AND rm_val->>'pkgId' != '' 
+                                                            THEN (rm_val->>'pkgId')::int
+                                                            ELSE null
+                                                        END,
+                                                        'room_name', COALESCE(
+                                                            (
+                                                                SELECT pc.room_name
+                                                                FROM package_cache pc
+                                                                WHERE pc.package_id = CASE 
+                                                                    WHEN rm_val->>'pkgId' IS NOT NULL AND rm_val->>'pkgId' != '' 
+                                                                    THEN (rm_val->>'pkgId')::int
+                                                                    ELSE null
+                                                                END
                                                             ),
-                                    
-                                                            -- ✅ SWITCHBOARDS - ORDER PRESERVED
-                                                            'switchboards', (
+                                                            ''
+                                                        ),
+                                                        'products', COALESCE(
+                                                            (
                                                                 SELECT jsonb_agg(
                                                                     jsonb_build_object(
-                                                                        'name', sb_val->>'name',
-                                                                        'mod', sb_val->'mod',
-                                                                        'colorValue', sb_val->'colorValue',
-                                    
-                                                                        -- ✅ SWITCHBOARD PRODUCTS - ORDER PRESERVED
-                                                                        'products', COALESCE(
-                                                                            (
-                                                                                SELECT jsonb_agg(
-                                                                                    jsonb_build_object(
-                                                                                        'id', pc.id,
-                                                                                        'name', pc.product_name,
-                                                                                        'category', pc.category,
-                                                                                        'price', pc.price,
-                                                                                        'modSize', pc.mod_size,
-                                                                                        'wiring_type_id', pc.wiring_type_id,
-                                                                                        'wiring_type', pc.wiring_name,
-                                                                                        'images', pc.images,
-                                                                                        'quantity', COALESCE(
-                                                                                            CASE 
-                                                                                                WHEN jsonb_typeof(spid_val) = 'object' 
-                                                                                                THEN (spid_val->>'quantity')::int
-                                                                                                ELSE NULL
-                                                                                            END, 1
-                                                                                        ),
-                                                                                        'firstLoad', COALESCE(
-                                                                                            CASE 
-                                                                                                WHEN jsonb_typeof(spid_val) = 'object' 
-                                                                                                THEN spid_val->>'firstLoad'
-                                                                                                ELSE ''
-                                                                                            END, ''
-                                                                                        ),
-                                                                                        'secondLoad', COALESCE(
-                                                                                            CASE 
-                                                                                                WHEN jsonb_typeof(spid_val) = 'object' 
-                                                                                                THEN spid_val->>'secondLoad'
-                                                                                                ELSE ''
-                                                                                            END, ''
-                                                                                        ),
-                                                                                        'thirdLoad', COALESCE(
-                                                                                            CASE 
-                                                                                                WHEN jsonb_typeof(spid_val) = 'object' 
-                                                                                                THEN spid_val->>'thirdLoad'
-                                                                                                ELSE ''
-                                                                                            END, ''
-                                                                                        ),
-                                                                                        'forthLoad', COALESCE(
-                                                                                            CASE 
-                                                                                                WHEN jsonb_typeof(spid_val) = 'object' 
-                                                                                                THEN spid_val->>'forthLoad'
-                                                                                                ELSE ''
-                                                                                            END, ''
-                                                                                        )
-                                                                                    ) ORDER BY spid_idx
-                                                                                )
-                                                                                FROM jsonb_array_elements(
-                                                                                    COALESCE(sb_val->'products', '[]'::jsonb)
-                                                                                ) WITH ORDINALITY AS t(spid_val, spid_idx)
-                                                                                JOIN product_cache pc ON pc.id = (
-                                                                                    CASE 
-                                                                                        WHEN jsonb_typeof(spid_val) = 'number' 
-                                                                                        THEN spid_val::text::int
-                                                                                        WHEN jsonb_typeof(spid_val) = 'object' 
-                                                                                        THEN (spid_val->>'id')::int
-                                                                                    END
-                                                                                )
-                                                                            ),
-                                                                            '[]'::jsonb
+                                                                        'id', pc.id,
+                                                                        'name', pc.product_name,
+                                                                        'category', pc.category,
+                                                                        'price', pc.price,
+                                                                        'modSize', pc.mod_size,
+                                                                        'wiring_type_id', pc.wiring_type_id,
+                                                                        'wiring_type', pc.wiring_name,
+                                                                        'images', pc.images,
+                                                                        'quantity', COALESCE(
+                                                                            CASE 
+                                                                                WHEN jsonb_typeof(pid_val) = 'object' 
+                                                                                THEN (pid_val->>'quantity')::int
+                                                                                ELSE NULL
+                                                                            END, 1
+                                                                        ),
+                                                                        'firstLoad', COALESCE(
+                                                                            CASE 
+                                                                                WHEN jsonb_typeof(pid_val) = 'object' 
+                                                                                THEN pid_val->>'firstLoad'
+                                                                                ELSE ''
+                                                                            END, ''
+                                                                        ),
+                                                                        'secondLoad', COALESCE(
+                                                                            CASE 
+                                                                                WHEN jsonb_typeof(pid_val) = 'object' 
+                                                                                THEN pid_val->>'secondLoad'
+                                                                                ELSE ''
+                                                                            END, ''
+                                                                        ),
+                                                                        'thirdLoad', COALESCE(
+                                                                            CASE 
+                                                                                WHEN jsonb_typeof(pid_val) = 'object' 
+                                                                                THEN pid_val->>'thirdLoad'
+                                                                                ELSE ''
+                                                                            END, ''
+                                                                        ),
+                                                                        'forthLoad', COALESCE(
+                                                                            CASE 
+                                                                                WHEN jsonb_typeof(pid_val) = 'object' 
+                                                                                THEN pid_val->>'forthLoad'
+                                                                                ELSE ''
+                                                                            END, ''
                                                                         )
-                                                                    ) ORDER BY sb_idx
+                                                                    ) ORDER BY pid_idx
                                                                 )
                                                                 FROM jsonb_array_elements(
-                                                                    COALESCE(rm_val->'switchboards', '[]'::jsonb)
-                                                                ) WITH ORDINALITY AS t(sb_val, sb_idx)
+                                                                    COALESCE(rm_val->'products', '[]'::jsonb)
+                                                                ) WITH ORDINALITY AS t(pid_val, pid_idx)
+                                                                JOIN product_cache pc ON pc.id = (
+                                                                    CASE 
+                                                                        WHEN jsonb_typeof(pid_val) = 'number' 
+                                                                        THEN pid_val::text::int
+                                                                        WHEN jsonb_typeof(pid_val) = 'object' 
+                                                                        THEN (pid_val->>'id')::int
+                                                                    END
+                                                                )
+                                                            ),
+                                                            '[]'::jsonb
+                                                        ),
+                                                        'switchboards', (
+                                                            SELECT jsonb_agg(
+                                                                jsonb_build_object(
+                                                                    'name', sb_val->>'name',
+                                                                    'mod', sb_val->'mod',
+                                                                    'colorValue', sb_val->'colorValue',
+                                                                    'products', COALESCE(
+                                                                        (
+                                                                            SELECT jsonb_agg(
+                                                                                jsonb_build_object(
+                                                                                    'id', pc.id,
+                                                                                    'name', pc.product_name,
+                                                                                    'category', pc.category,
+                                                                                    'price', pc.price,
+                                                                                    'modSize', pc.mod_size,
+                                                                                    'wiring_type_id', pc.wiring_type_id,
+                                                                                    'wiring_type', pc.wiring_name,
+                                                                                    'images', pc.images,
+                                                                                    'quantity', COALESCE(
+                                                                                        CASE 
+                                                                                            WHEN jsonb_typeof(spid_val) = 'object' 
+                                                                                            THEN (spid_val->>'quantity')::int
+                                                                                            ELSE NULL
+                                                                                        END, 1
+                                                                                    ),
+                                                                                    'firstLoad', COALESCE(
+                                                                                        CASE 
+                                                                                            WHEN jsonb_typeof(spid_val) = 'object' 
+                                                                                            THEN spid_val->>'firstLoad'
+                                                                                            ELSE ''
+                                                                                        END, ''
+                                                                                    ),
+                                                                                    'secondLoad', COALESCE(
+                                                                                        CASE 
+                                                                                            WHEN jsonb_typeof(spid_val) = 'object' 
+                                                                                            THEN spid_val->>'secondLoad'
+                                                                                            ELSE ''
+                                                                                        END, ''
+                                                                                    ),
+                                                                                    'thirdLoad', COALESCE(
+                                                                                        CASE 
+                                                                                            WHEN jsonb_typeof(spid_val) = 'object' 
+                                                                                            THEN spid_val->>'thirdLoad'
+                                                                                            ELSE ''
+                                                                                        END, ''
+                                                                                    ),
+                                                                                    'forthLoad', COALESCE(
+                                                                                        CASE 
+                                                                                            WHEN jsonb_typeof(spid_val) = 'object' 
+                                                                                            THEN spid_val->>'forthLoad'
+                                                                                            ELSE ''
+                                                                                        END, ''
+                                                                                    )
+                                                                                ) ORDER BY spid_idx
+                                                                            )
+                                                                            FROM jsonb_array_elements(
+                                                                                COALESCE(sb_val->'products', '[]'::jsonb)
+                                                                            ) WITH ORDINALITY AS t(spid_val, spid_idx)
+                                                                            JOIN product_cache pc ON pc.id = (
+                                                                                CASE 
+                                                                                    WHEN jsonb_typeof(spid_val) = 'number' 
+                                                                                    THEN spid_val::text::int
+                                                                                    WHEN jsonb_typeof(spid_val) = 'object' 
+                                                                                    THEN (spid_val->>'id')::int
+                                                                                END
+                                                                            )
+                                                                        ),
+                                                                        '[]'::jsonb
+                                                                    )
+                                                                ) ORDER BY sb_idx
                                                             )
-                                                        ) ORDER BY rm_idx
-                                                    )
-                                                    FROM jsonb_array_elements(
-                                                        COALESCE(hm_val->'rooms', '[]'::jsonb)
-                                                    ) WITH ORDINALITY AS t(rm_val, rm_idx)
+                                                            FROM jsonb_array_elements(
+                                                                COALESCE(rm_val->'switchboards', '[]'::jsonb)
+                                                            ) WITH ORDINALITY AS t(sb_val, sb_idx)
+                                                        )
+                                                    ) ORDER BY rm_idx
                                                 )
-                                            ) ORDER BY hm_idx
-                                        )
-                                        FROM jsonb_array_elements(
-                                            COALESCE(fl_val->'homes', '[]'::jsonb)
-                                        ) WITH ORDINALITY AS t(hm_val, hm_idx)
+                                                FROM jsonb_array_elements(
+                                                    COALESCE(hm_val->'rooms', '[]'::jsonb)
+                                                ) WITH ORDINALITY AS t(rm_val, rm_idx)
+                                            )
+                                        ) ORDER BY hm_idx
                                     )
-                                ) ORDER BY fl_idx
-                            ) AS floor
-                            FROM jsonb_array_elements(
-                                COALESCE(p.floor, '[]'::jsonb)
-                            ) WITH ORDINALITY AS t(fl_val, fl_idx)
-                        ) floors ON TRUE
-                                    
-                        LEFT JOIN products_wise_cache pwc ON pwc.proposal_id = p.id
-                        LEFT JOIN clients c ON c.id = p.client_id
-                        LEFT JOIN users u ON u.id = p.created_by
-                        LEFT JOIN roles r ON r.id = u.role_id
+                                    FROM jsonb_array_elements(
+                                        COALESCE(fl_val->'homes', '[]'::jsonb)
+                                    ) WITH ORDINALITY AS t(hm_val, hm_idx)
+                                )
+                            ) ORDER BY fl_idx
+                        )
+                        FROM jsonb_array_elements(
+                            COALESCE(p.floor, '[]'::jsonb)
+                        ) WITH ORDINALITY AS t(fl_val, fl_idx)
+                    ) AS floor,
 
-                    WHERE p.deleted_at IS NULL;`
+                    CASE 
+                        WHEN p.proposal_type = 'productsWise' 
+                        THEN pwc.products_list
+                        ELSE NULL
+                    END AS products_wise_items,
+
+                    p.commissioning_percentage,
+                    p.discount_percentage,
+                    p.financial_breakdown,
+                    p.grand_total,
+                    p.installation_percentage,
+                    p.recipient_name,
+                    p.ship_to_address,
+                    p.use_same_address,
+                    p.use_same_recipient,
+
+                    jsonb_build_object(
+                        'id', c.id,
+                        'client_id', c.client_id,
+                        'first_name', c.first_name,
+                        'last_name', c.last_name,
+                        'email', c.email_id,
+                        'mobile', c.mobile_number,
+                        'address_line_one', c.address_line_one,
+                        'pin_code', c.pin_code,
+                        'country', c.country,
+                        'state', c.state,
+                        'district', c.district,
+                        'taluk', c.taluk,
+                        'division', c.division,
+                        'region', c.region,
+                        'company_name', c.company_name,
+                        'gst', c.gst,
+                        'company_address', c.company_address,
+                        'created_at', c.created_at,
+                        'updated_at', c.updated_at,
+                        'deleted_by', c.deleted_by,
+                        'deleted_at', c.deleted_at,
+                        'salesrepincharge', c.salesrepincharge,
+                        'installation_rep_in_charge', c.installation_rep_in_charge,
+                        'lead_source', c.lead_source,
+                        'date_of_installation', c.date_of_installation,
+                        'site_contractor_name', c.site_contractor_name,
+                        'site_contractor_phone', c.site_contractor_phone,
+                        'architect_name', c.architect_name,
+                        'architect_phone', c.architect_phone,
+                        'address_line_two', c.address_line_two
+                    ) AS client_details,
+
+                    jsonb_build_object(
+                        'id', u.id,
+                        'user_name', u.user_name,
+                        'role', jsonb_build_object(
+                            'role_id', r.id,
+                            'role_name', r.role_name
+                        )
+                    ) AS created_by
+
+                FROM proposals p
+
+                LEFT JOIN products_wise_cache pwc ON pwc.proposal_id = p.id
+                LEFT JOIN clients c ON c.id = p.client_id
+                LEFT JOIN users u ON u.id = p.created_by
+                LEFT JOIN roles r ON r.id = u.role_id
+
+                WHERE p.deleted_at IS NULL;`
 
             );
 
@@ -1140,305 +1157,320 @@ const productModel = {
 
             const result = await pool.query(
                 `WITH product_cache AS (
-                            SELECT
-                                p.id,
-                                p.product_name,
-                                p.category,
-                                p.price,
-                                p.mod_size,
-                                p.wiring_type_id,
-                                wt.wiring_name,
-                                COALESCE(
-                                    jsonb_agg(
-                                        DISTINCT pi.image_url
-                                    ) FILTER (WHERE pi.image_url IS NOT NULL),
-                                    '[]'::jsonb
-                                ) AS images
-                            FROM products p
-                            LEFT JOIN wiring_types wt ON wt.id = p.wiring_type_id
-                            LEFT JOIN product_images pi ON pi.product_id = p.id
-                            GROUP BY p.id, wt.wiring_name
-                        ),
-                                    
-                        products_wise_cache AS (
-                            SELECT
-                                p.id AS proposal_id,
-                                jsonb_agg(
-                                    jsonb_build_object(
-                                        'id', pc.id,
-                                        'name', pc.product_name,
-                                        'category', pc.category,
-                                        'price', pc.price,
-                                        'quantity', (item_val->>'quantity')::int,
-                                        'wiring_type_id', pc.wiring_type_id,
-                                        'wiring_type', pc.wiring_name,
-                                        'images', pc.images
-                                    ) ORDER BY item_idx
-                                ) AS products_list
-                            FROM proposals p
-                            CROSS JOIN jsonb_array_elements(
-                                COALESCE(p.products_wise_items, '[]'::jsonb)
-                            ) WITH ORDINALITY AS t(item_val, item_idx)
-                            JOIN product_cache pc ON pc.id = (item_val->>'id')::int
-                            WHERE p.proposal_type = 'productsWise'
-                            AND p.deleted_at IS NULL
-                            GROUP BY p.id
-                        )
-                                    
-                        SELECT
-                            p.id,
-                            p.proposal_id,
-                            p.proposal_title,
-                            p.proposal_type,
-                            p.proposal_status,
-                            p.created_at,
-                            p.updated_at,
-                                    
-                            floors.floor,
-                                    
-                            CASE 
-                                WHEN p.proposal_type = 'productsWise' 
-                                THEN pwc.products_list
-                                ELSE NULL
-                            END AS products_wise_items,
-                                    
-                            p.commissioning_percentage,
-                            p.discount_percentage,
-                            p.financial_breakdown,
-                            p.grand_total,
-                            p.installation_percentage,
-                            p.recipient_name,
-                            p.ship_to_address,
-                            p.use_same_address,
-                            p.use_same_recipient,
-                                    
-                            jsonb_build_object(
-                                'id', c.id,
-                                'client_id', c.client_id,
-                                'first_name', c.first_name,
-                                'last_name', c.last_name,
-                                'email', c.email_id,
-                                'mobile', c.mobile_number,
-                                'address_line_one', c.address_line_one,
-                                'pin_code', c.pin_code,
-                                'country', c.country,
-                                'state', c.state,
-                                'district', c.district,
-                                'taluk', c.taluk,
-                                'division', c.division,
-                                'region', c.region,
-                                'company_name', c.company_name,
-                                'gst', c.gst,
-                                'company_address', c.company_address,
-                                'created_at', c.created_at,
-                                'updated_at', c.updated_at,
-                                'deleted_by', c.deleted_by,
-                                'deleted_at', c.deleted_at,
-                                'salesrepincharge', c.salesrepincharge,
-                                'installation_rep_in_charge', c.installation_rep_in_charge,
-                                'lead_source', c.lead_source,
-                                'date_of_installation', c.date_of_installation,
-                                'site_contractor_name', c.site_contractor_name,
-                                'site_contractor_phone', c.site_contractor_phone,
-                                'architect_name', c.architect_name,
-                                'architect_phone', c.architect_phone,
-                                'address_line_two', c.address_line_two
-                            ) AS client_details,
-                                    
-                            jsonb_build_object(
-                                'id', u.id,
-                                'user_name', u.user_name,
-                                'role', jsonb_build_object(
-                                    'role_id', r.id,
-                                    'role_name', r.role_name
-                                )
-                            ) AS created_by
-                                    
-                        FROM proposals p
-                                    
-                        LEFT JOIN LATERAL (
-                            SELECT jsonb_agg(
-                                jsonb_build_object(
-                                    'name', fl_val->>'name',
-                                    'homes', (
-                                        SELECT jsonb_agg(
-                                            jsonb_build_object(
-                                                'name', hm_val->>'name',
-                                                'rooms', (
-                                                    SELECT jsonb_agg(
-                                                        jsonb_build_object(
-                                                            'name', rm_val->>'name',
-                                    
-                                                            -- ✅ ROOM PRODUCTS - ORDER PRESERVED
-                                                            'products', COALESCE(
-                                                                (
-                                                                    SELECT jsonb_agg(
-                                                                        jsonb_build_object(
-                                                                            'id', pc.id,
-                                                                            'name', pc.product_name,
-                                                                            'category', pc.category,
-                                                                            'price', pc.price,
-                                                                            'modSize', pc.mod_size,
-                                                                            'wiring_type_id', pc.wiring_type_id,
-                                                                            'wiring_type', pc.wiring_name,
-                                                                            'images', pc.images,
-                                                                            'quantity', COALESCE(
-                                                                                CASE 
-                                                                                    WHEN jsonb_typeof(pid_val) = 'object' 
-                                                                                    THEN (pid_val->>'quantity')::int
-                                                                                    ELSE NULL
-                                                                                END, 1
-                                                                            ),
-                                                                            'firstLoad', COALESCE(
-                                                                                CASE 
-                                                                                    WHEN jsonb_typeof(pid_val) = 'object' 
-                                                                                    THEN pid_val->>'firstLoad'
-                                                                                    ELSE ''
-                                                                                END, ''
-                                                                            ),
-                                                                            'secondLoad', COALESCE(
-                                                                                CASE 
-                                                                                    WHEN jsonb_typeof(pid_val) = 'object' 
-                                                                                    THEN pid_val->>'secondLoad'
-                                                                                    ELSE ''
-                                                                                END, ''
-                                                                            ),
-                                                                            'thirdLoad', COALESCE(
-                                                                                CASE 
-                                                                                    WHEN jsonb_typeof(pid_val) = 'object' 
-                                                                                    THEN pid_val->>'thirdLoad'
-                                                                                    ELSE ''
-                                                                                END, ''
-                                                                            ),
-                                                                            'forthLoad', COALESCE(
-                                                                                CASE 
-                                                                                    WHEN jsonb_typeof(pid_val) = 'object' 
-                                                                                    THEN pid_val->>'forthLoad'
-                                                                                    ELSE ''
-                                                                                END, ''
-                                                                            )
-                                                                        ) ORDER BY pid_idx
-                                                                    )
-                                                                    FROM jsonb_array_elements(
-                                                                        COALESCE(rm_val->'products', '[]'::jsonb)
-                                                                    ) WITH ORDINALITY AS t(pid_val, pid_idx)
-                                                                    JOIN product_cache pc ON pc.id = (
-                                                                        CASE 
-                                                                            WHEN jsonb_typeof(pid_val) = 'number' 
-                                                                            THEN pid_val::text::int
-                                                                            WHEN jsonb_typeof(pid_val) = 'object' 
-                                                                            THEN (pid_val->>'id')::int
-                                                                        END
-                                                                    )
-                                                                ),
-                                                                '[]'::jsonb
-                                                            ),
-                                    
-                                                            -- ✅ SWITCHBOARDS - ORDER PRESERVED
-                                                            'switchboards', (
-                                                                SELECT jsonb_agg(
-                                                                    jsonb_build_object(
-                                                                        'name', sb_val->>'name',
-                                                                        'mod', sb_val->'mod',
-                                                                        'colorValue', sb_val->'colorValue',
-                                    
-                                                                        -- ✅ SWITCHBOARD PRODUCTS - ORDER PRESERVED
-                                                                        'products', COALESCE(
-                                                                            (
-                                                                                SELECT jsonb_agg(
-                                                                                    jsonb_build_object(
-                                                                                        'id', pc.id,
-                                                                                        'name', pc.product_name,
-                                                                                        'category', pc.category,
-                                                                                        'price', pc.price,
-                                                                                        'modSize', pc.mod_size,
-                                                                                        'wiring_type_id', pc.wiring_type_id,
-                                                                                        'wiring_type', pc.wiring_name,
-                                                                                        'images', pc.images,
-                                                                                        'quantity', COALESCE(
-                                                                                            CASE 
-                                                                                                WHEN jsonb_typeof(spid_val) = 'object' 
-                                                                                                THEN (spid_val->>'quantity')::int
-                                                                                                ELSE NULL
-                                                                                            END, 1
-                                                                                        ),
-                                                                                        'firstLoad', COALESCE(
-                                                                                            CASE 
-                                                                                                WHEN jsonb_typeof(spid_val) = 'object' 
-                                                                                                THEN spid_val->>'firstLoad'
-                                                                                                ELSE ''
-                                                                                            END, ''
-                                                                                        ),
-                                                                                        'secondLoad', COALESCE(
-                                                                                            CASE 
-                                                                                                WHEN jsonb_typeof(spid_val) = 'object' 
-                                                                                                THEN spid_val->>'secondLoad'
-                                                                                                ELSE ''
-                                                                                            END, ''
-                                                                                        ),
-                                                                                        'thirdLoad', COALESCE(
-                                                                                            CASE 
-                                                                                                WHEN jsonb_typeof(spid_val) = 'object' 
-                                                                                                THEN spid_val->>'thirdLoad'
-                                                                                                ELSE ''
-                                                                                            END, ''
-                                                                                        ),
-                                                                                        'forthLoad', COALESCE(
-                                                                                            CASE 
-                                                                                                WHEN jsonb_typeof(spid_val) = 'object' 
-                                                                                                THEN spid_val->>'forthLoad'
-                                                                                                ELSE ''
-                                                                                            END, ''
-                                                                                        )
-                                                                                    ) ORDER BY spid_idx
-                                                                                )
-                                                                                FROM jsonb_array_elements(
-                                                                                    COALESCE(sb_val->'products', '[]'::jsonb)
-                                                                                ) WITH ORDINALITY AS t(spid_val, spid_idx)
-                                                                                JOIN product_cache pc ON pc.id = (
-                                                                                    CASE 
-                                                                                        WHEN jsonb_typeof(spid_val) = 'number' 
-                                                                                        THEN spid_val::text::int
-                                                                                        WHEN jsonb_typeof(spid_val) = 'object' 
-                                                                                        THEN (spid_val->>'id')::int
-                                                                                    END
-                                                                                )
-                                                                            ),
-                                                                            '[]'::jsonb
-                                                                        )
-                                                                    ) ORDER BY sb_idx
-                                                                )
-                                                                FROM jsonb_array_elements(
-                                                                    COALESCE(rm_val->'switchboards', '[]'::jsonb)
-                                                                ) WITH ORDINALITY AS t(sb_val, sb_idx)
-                                                            )
-                                                        ) ORDER BY rm_idx
-                                                    )
-                                                    FROM jsonb_array_elements(
-                                                        COALESCE(hm_val->'rooms', '[]'::jsonb)
-                                                    ) WITH ORDINALITY AS t(rm_val, rm_idx)
-                                                )
-                                            ) ORDER BY hm_idx
-                                        )
-                                        FROM jsonb_array_elements(
-                                            COALESCE(fl_val->'homes', '[]'::jsonb)
-                                        ) WITH ORDINALITY AS t(hm_val, hm_idx)
-                                    )
-                                ) ORDER BY fl_idx
-                            ) AS floor
-                            FROM jsonb_array_elements(
-                                COALESCE(p.floor, '[]'::jsonb)
-                            ) WITH ORDINALITY AS t(fl_val, fl_idx)
-                        ) floors ON TRUE
-                                    
-                        LEFT JOIN products_wise_cache pwc ON pwc.proposal_id = p.id
-                        LEFT JOIN clients c ON c.id = p.client_id
-                        LEFT JOIN users u ON u.id = p.created_by
-                        LEFT JOIN roles r ON r.id = u.role_id
+    SELECT
+        p.id,
+        p.product_name,
+        p.category,
+        p.price,
+        p.mod_size,
+        p.wiring_type_id,
+        wt.wiring_name,
+        COALESCE(
+            jsonb_agg(
+                DISTINCT pi.image_url
+            ) FILTER (WHERE pi.image_url IS NOT NULL),
+            '[]'::jsonb
+        ) AS images
+    FROM products p
+    LEFT JOIN wiring_types wt ON wt.id = p.wiring_type_id
+    LEFT JOIN product_images pi ON pi.product_id = p.id
+    GROUP BY p.id, wt.wiring_name
+),
 
-                    /* ================= FILTER ================= */
-                  
-                    WHERE p.id = $1 and  p.deleted_at IS NULL; `, [proposalId]);
+products_wise_cache AS (
+    SELECT
+        p.id AS proposal_id,
+        jsonb_agg(
+            jsonb_build_object(
+                'id', pc.id,
+                'name', pc.product_name,
+                'category', pc.category,
+                'price', pc.price,
+                'quantity', (item_val->>'quantity')::int,
+                'wiring_type_id', pc.wiring_type_id,
+                'wiring_type', pc.wiring_name,
+                'images', pc.images
+            ) ORDER BY item_idx
+        ) AS products_list
+    FROM proposals p
+    CROSS JOIN jsonb_array_elements(
+        COALESCE(p.products_wise_items, '[]'::jsonb)
+    ) WITH ORDINALITY AS t(item_val, item_idx)
+    JOIN product_cache pc ON pc.id = (item_val->>'id')::int
+    WHERE p.proposal_type = 'productsWise'
+    AND p.deleted_at IS NULL
+    GROUP BY p.id
+),
+
+package_cache AS (
+    SELECT 
+        pp.id AS package_id,
+        pp.room_name
+    FROM product_packages pp
+    WHERE pp.deleted_at IS NULL
+)
+
+SELECT
+    p.id,
+    p.proposal_id,
+    p.proposal_title,
+    p.proposal_type,
+    p.proposal_status,
+    p.created_at,
+    p.updated_at,
+    
+    (
+        SELECT jsonb_agg(
+            jsonb_build_object(
+                'name', fl_val->>'name',
+                'homes', (
+                    SELECT jsonb_agg(
+                        jsonb_build_object(
+                            'name', hm_val->>'name',
+                            'rooms', (
+                                SELECT jsonb_agg(
+                                    jsonb_build_object(
+                                        'name', rm_val->>'name',
+                                        'pkgId', CASE 
+                                            WHEN rm_val->>'pkgId' IS NOT NULL AND rm_val->>'pkgId' != '' 
+                                            THEN (rm_val->>'pkgId')::int
+                                            ELSE null
+                                        END,
+                                        'room_name', COALESCE(
+                                            (
+                                                SELECT pc.room_name
+                                                FROM package_cache pc
+                                                WHERE pc.package_id = CASE 
+                                                    WHEN rm_val->>'pkgId' IS NOT NULL AND rm_val->>'pkgId' != '' 
+                                                    THEN (rm_val->>'pkgId')::int
+                                                    ELSE null
+                                                END
+                                            ),
+                                            ''
+                                        ),
+                                        'products', COALESCE(
+                                            (
+                                                SELECT jsonb_agg(
+                                                    jsonb_build_object(
+                                                        'id', pc.id,
+                                                        'name', pc.product_name,
+                                                        'category', pc.category,
+                                                        'price', pc.price,
+                                                        'modSize', pc.mod_size,
+                                                        'wiring_type_id', pc.wiring_type_id,
+                                                        'wiring_type', pc.wiring_name,
+                                                        'images', pc.images,
+                                                        'quantity', COALESCE(
+                                                            CASE 
+                                                                WHEN jsonb_typeof(pid_val) = 'object' 
+                                                                THEN (pid_val->>'quantity')::int
+                                                                ELSE NULL
+                                                            END, 1
+                                                        ),
+                                                        'firstLoad', COALESCE(
+                                                            CASE 
+                                                                WHEN jsonb_typeof(pid_val) = 'object' 
+                                                                THEN pid_val->>'firstLoad'
+                                                                ELSE ''
+                                                            END, ''
+                                                        ),
+                                                        'secondLoad', COALESCE(
+                                                            CASE 
+                                                                WHEN jsonb_typeof(pid_val) = 'object' 
+                                                                THEN pid_val->>'secondLoad'
+                                                                ELSE ''
+                                                            END, ''
+                                                        ),
+                                                        'thirdLoad', COALESCE(
+                                                            CASE 
+                                                                WHEN jsonb_typeof(pid_val) = 'object' 
+                                                                THEN pid_val->>'thirdLoad'
+                                                                ELSE ''
+                                                            END, ''
+                                                        ),
+                                                        'forthLoad', COALESCE(
+                                                            CASE 
+                                                                WHEN jsonb_typeof(pid_val) = 'object' 
+                                                                THEN pid_val->>'forthLoad'
+                                                                ELSE ''
+                                                            END, ''
+                                                        )
+                                                    ) ORDER BY pid_idx
+                                                )
+                                                FROM jsonb_array_elements(
+                                                    COALESCE(rm_val->'products', '[]'::jsonb)
+                                                ) WITH ORDINALITY AS t(pid_val, pid_idx)
+                                                JOIN product_cache pc ON pc.id = (
+                                                    CASE 
+                                                        WHEN jsonb_typeof(pid_val) = 'number' 
+                                                        THEN pid_val::text::int
+                                                        WHEN jsonb_typeof(pid_val) = 'object' 
+                                                        THEN (pid_val->>'id')::int
+                                                    END
+                                                )
+                                            ),
+                                            '[]'::jsonb
+                                        ),
+                                        'switchboards', (
+                                            SELECT jsonb_agg(
+                                                jsonb_build_object(
+                                                    'name', sb_val->>'name',
+                                                    'mod', sb_val->'mod',
+                                                    'colorValue', sb_val->'colorValue',
+                                                    'products', COALESCE(
+                                                        (
+                                                            SELECT jsonb_agg(
+                                                                jsonb_build_object(
+                                                                    'id', pc.id,
+                                                                    'name', pc.product_name,
+                                                                    'category', pc.category,
+                                                                    'price', pc.price,
+                                                                    'modSize', pc.mod_size,
+                                                                    'wiring_type_id', pc.wiring_type_id,
+                                                                    'wiring_type', pc.wiring_name,
+                                                                    'images', pc.images,
+                                                                    'quantity', COALESCE(
+                                                                        CASE 
+                                                                            WHEN jsonb_typeof(spid_val) = 'object' 
+                                                                            THEN (spid_val->>'quantity')::int
+                                                                            ELSE NULL
+                                                                        END, 1
+                                                                    ),
+                                                                    'firstLoad', COALESCE(
+                                                                        CASE 
+                                                                            WHEN jsonb_typeof(spid_val) = 'object' 
+                                                                            THEN spid_val->>'firstLoad'
+                                                                            ELSE ''
+                                                                        END, ''
+                                                                    ),
+                                                                    'secondLoad', COALESCE(
+                                                                        CASE 
+                                                                            WHEN jsonb_typeof(spid_val) = 'object' 
+                                                                            THEN spid_val->>'secondLoad'
+                                                                            ELSE ''
+                                                                        END, ''
+                                                                    ),
+                                                                    'thirdLoad', COALESCE(
+                                                                        CASE 
+                                                                            WHEN jsonb_typeof(spid_val) = 'object' 
+                                                                            THEN spid_val->>'thirdLoad'
+                                                                            ELSE ''
+                                                                        END, ''
+                                                                    ),
+                                                                    'forthLoad', COALESCE(
+                                                                        CASE 
+                                                                            WHEN jsonb_typeof(spid_val) = 'object' 
+                                                                            THEN spid_val->>'forthLoad'
+                                                                            ELSE ''
+                                                                        END, ''
+                                                                    )
+                                                                ) ORDER BY spid_idx
+                                                            )
+                                                            FROM jsonb_array_elements(
+                                                                COALESCE(sb_val->'products', '[]'::jsonb)
+                                                            ) WITH ORDINALITY AS t(spid_val, spid_idx)
+                                                            JOIN product_cache pc ON pc.id = (
+                                                                CASE 
+                                                                    WHEN jsonb_typeof(spid_val) = 'number' 
+                                                                    THEN spid_val::text::int
+                                                                    WHEN jsonb_typeof(spid_val) = 'object' 
+                                                                    THEN (spid_val->>'id')::int
+                                                                END
+                                                            )
+                                                        ),
+                                                        '[]'::jsonb
+                                                    )
+                                                ) ORDER BY sb_idx
+                                            )
+                                            FROM jsonb_array_elements(
+                                                COALESCE(rm_val->'switchboards', '[]'::jsonb)
+                                            ) WITH ORDINALITY AS t(sb_val, sb_idx)
+                                        )
+                                    ) ORDER BY rm_idx
+                                )
+                                FROM jsonb_array_elements(
+                                    COALESCE(hm_val->'rooms', '[]'::jsonb)
+                                ) WITH ORDINALITY AS t(rm_val, rm_idx)
+                            )
+                        ) ORDER BY hm_idx
+                    )
+                    FROM jsonb_array_elements(
+                        COALESCE(fl_val->'homes', '[]'::jsonb)
+                    ) WITH ORDINALITY AS t(hm_val, hm_idx)
+                )
+            ) ORDER BY fl_idx
+        )
+        FROM jsonb_array_elements(
+            COALESCE(p.floor, '[]'::jsonb)
+        ) WITH ORDINALITY AS t(fl_val, fl_idx)
+    ) AS floor,
+    
+    CASE 
+        WHEN p.proposal_type = 'productsWise' 
+        THEN pwc.products_list
+        ELSE NULL
+    END AS products_wise_items,
+    
+    p.commissioning_percentage,
+    p.discount_percentage,
+    p.financial_breakdown,
+    p.grand_total,
+    p.installation_percentage,
+    p.recipient_name,
+    p.ship_to_address,
+    p.use_same_address,
+    p.use_same_recipient,
+    
+    jsonb_build_object(
+        'id', c.id,
+        'client_id', c.client_id,
+        'first_name', c.first_name,
+        'last_name', c.last_name,
+        'email', c.email_id,
+        'mobile', c.mobile_number,
+        'address_line_one', c.address_line_one,
+        'pin_code', c.pin_code,
+        'country', c.country,
+        'state', c.state,
+        'district', c.district,
+        'taluk', c.taluk,
+        'division', c.division,
+        'region', c.region,
+        'company_name', c.company_name,
+        'gst', c.gst,
+        'company_address', c.company_address,
+        'created_at', c.created_at,
+        'updated_at', c.updated_at,
+        'deleted_by', c.deleted_by,
+        'deleted_at', c.deleted_at,
+        'salesrepincharge', c.salesrepincharge,
+        'installation_rep_in_charge', c.installation_rep_in_charge,
+        'lead_source', c.lead_source,
+        'date_of_installation', c.date_of_installation,
+        'site_contractor_name', c.site_contractor_name,
+        'site_contractor_phone', c.site_contractor_phone,
+        'architect_name', c.architect_name,
+        'architect_phone', c.architect_phone,
+        'address_line_two', c.address_line_two
+    ) AS client_details,
+    
+    jsonb_build_object(
+        'id', u.id,
+        'user_name', u.user_name,
+        'role', jsonb_build_object(
+            'role_id', r.id,
+            'role_name', r.role_name
+        )
+    ) AS created_by
+    
+FROM proposals p
+
+LEFT JOIN products_wise_cache pwc ON pwc.proposal_id = p.id
+LEFT JOIN clients c ON c.id = p.client_id
+LEFT JOIN users u ON u.id = p.created_by
+LEFT JOIN roles r ON r.id = u.role_id
+
+WHERE p.id = $1 AND p.deleted_at IS NULL; `, [proposalId]);
 
             if (!result.rows.length) {
                 return {
@@ -1463,123 +1495,69 @@ const productModel = {
 
             const result = await pool.query(
                 `WITH product_cache AS (
-                            SELECT
-                                p.id,
-                                p.product_name,
-                                p.category,
-                                p.price,
-                                p.mod_size,
-                                p.wiring_type_id,
-                                wt.wiring_name,
-                                COALESCE(
-                                    jsonb_agg(
-                                        DISTINCT pi.image_url
-                                    ) FILTER (WHERE pi.image_url IS NOT NULL),
-                                    '[]'::jsonb
-                                ) AS images
-                            FROM products p
-                            LEFT JOIN wiring_types wt ON wt.id = p.wiring_type_id
-                            LEFT JOIN product_images pi ON pi.product_id = p.id
-                            GROUP BY p.id, wt.wiring_name
-                        ),
-                                    
-                        products_wise_cache AS (
-                            SELECT
-                                p.id AS proposal_id,
-                                jsonb_agg(
-                                    jsonb_build_object(
-                                        'id', pc.id,
-                                        'name', pc.product_name,
-                                        'category', pc.category,
-                                        'price', pc.price,
-                                        'quantity', (item_val->>'quantity')::int,
-                                        'wiring_type_id', pc.wiring_type_id,
-                                        'wiring_type', pc.wiring_name,
-                                        'images', pc.images
-                                    ) ORDER BY item_idx
-                                ) AS products_list
-                            FROM proposals p
-                            CROSS JOIN jsonb_array_elements(
-                                COALESCE(p.products_wise_items, '[]'::jsonb)
-                            ) WITH ORDINALITY AS t(item_val, item_idx)
-                            JOIN product_cache pc ON pc.id = (item_val->>'id')::int
-                            WHERE p.proposal_type = 'productsWise'
-                            AND p.deleted_at IS NULL
-                            GROUP BY p.id
-                        )
-                                    
                         SELECT
                             p.id,
-                            p.proposal_id,
-                            p.proposal_title,
-                            p.proposal_type,
-                            p.proposal_status,
-                            p.created_at,
-                            p.updated_at,
-                                    
-                            floors.floor,
-                                    
-                            CASE 
-                                WHEN p.proposal_type = 'productsWise' 
-                                THEN pwc.products_list
-                                ELSE NULL
-                            END AS products_wise_items,
-                                    
-                            p.commissioning_percentage,
-                            p.discount_percentage,
-                            p.financial_breakdown,
-                            p.grand_total,
-                            p.installation_percentage,
-                            p.recipient_name,
-                            p.ship_to_address,
-                            p.use_same_address,
-                            p.use_same_recipient,
-                                    
-                            jsonb_build_object(
-                                'id', c.id,
-                                'client_id', c.client_id,
-                                'first_name', c.first_name,
-                                'last_name', c.last_name,
-                                'email', c.email_id,
-                                'mobile', c.mobile_number,
-                                'address_line_one', c.address_line_one,
-                                'pin_code', c.pin_code,
-                                'country', c.country,
-                                'state', c.state,
-                                'district', c.district,
-                                'taluk', c.taluk,
-                                'division', c.division,
-                                'region', c.region,
-                                'company_name', c.company_name,
-                                'gst', c.gst,
-                                'company_address', c.company_address,
-                                'created_at', c.created_at,
-                                'updated_at', c.updated_at,
-                                'deleted_by', c.deleted_by,
-                                'deleted_at', c.deleted_at,
-                                'salesrepincharge', c.salesrepincharge,
-                                'installation_rep_in_charge', c.installation_rep_in_charge,
-                                'lead_source', c.lead_source,
-                                'date_of_installation', c.date_of_installation,
-                                'site_contractor_name', c.site_contractor_name,
-                                'site_contractor_phone', c.site_contractor_phone,
-                                'architect_name', c.architect_name,
-                                'architect_phone', c.architect_phone,
-                                'address_line_two', c.address_line_two
-                            ) AS client_details,
-                                    
-                            jsonb_build_object(
-                                'id', u.id,
-                                'user_name', u.user_name,
-                                'role', jsonb_build_object(
-                                    'role_id', r.id,
-                                    'role_name', r.role_name
-                                )
-                            ) AS created_by
-                                    
+                            p.product_name,
+                            p.category,
+                            p.price,
+                            p.mod_size,
+                            p.wiring_type_id,
+                            wt.wiring_name,
+                            COALESCE(
+                                jsonb_agg(
+                                    DISTINCT pi.image_url
+                                ) FILTER (WHERE pi.image_url IS NOT NULL),
+                                '[]'::jsonb
+                            ) AS images
+                        FROM products p
+                        LEFT JOIN wiring_types wt ON wt.id = p.wiring_type_id
+                        LEFT JOIN product_images pi ON pi.product_id = p.id
+                        GROUP BY p.id, wt.wiring_name
+                    ),
+                                
+                    products_wise_cache AS (
+                        SELECT
+                            p.id AS proposal_id,
+                            jsonb_agg(
+                                jsonb_build_object(
+                                    'id', pc.id,
+                                    'name', pc.product_name,
+                                    'category', pc.category,
+                                    'price', pc.price,
+                                    'quantity', (item_val->>'quantity')::int,
+                                    'wiring_type_id', pc.wiring_type_id,
+                                    'wiring_type', pc.wiring_name,
+                                    'images', pc.images
+                                ) ORDER BY item_idx
+                            ) AS products_list
                         FROM proposals p
-                                    
-                        LEFT JOIN LATERAL (
+                        CROSS JOIN jsonb_array_elements(
+                            COALESCE(p.products_wise_items, '[]'::jsonb)
+                        ) WITH ORDINALITY AS t(item_val, item_idx)
+                        JOIN product_cache pc ON pc.id = (item_val->>'id')::int
+                        WHERE p.proposal_type = 'productsWise'
+                        AND p.deleted_at IS NULL
+                        GROUP BY p.id
+                    ),
+                                
+                    package_cache AS (
+                        SELECT 
+                            pp.id AS package_id,
+                            pp.room_name
+                        FROM product_packages pp
+                        WHERE pp.deleted_at IS NULL
+                    )
+                                
+                    SELECT
+                        p.id,
+                        p.proposal_id,
+                        p.proposal_title,
+                        p.proposal_type,
+                        p.proposal_status,
+                        p.created_at,
+                        p.updated_at,
+                                
+                        (
                             SELECT jsonb_agg(
                                 jsonb_build_object(
                                     'name', fl_val->>'name',
@@ -1591,8 +1569,23 @@ const productModel = {
                                                     SELECT jsonb_agg(
                                                         jsonb_build_object(
                                                             'name', rm_val->>'name',
-                                    
-                                                            -- ✅ ROOM PRODUCTS - ORDER PRESERVED
+                                                            'pkgId', CASE 
+                                                                WHEN rm_val->>'pkgId' IS NOT NULL AND rm_val->>'pkgId' != '' 
+                                                                THEN (rm_val->>'pkgId')::int
+                                                                ELSE null
+                                                            END,
+                                                            'room_name', COALESCE(
+                                                                (
+                                                                    SELECT pc.room_name
+                                                                    FROM package_cache pc
+                                                                    WHERE pc.package_id = CASE 
+                                                                        WHEN rm_val->>'pkgId' IS NOT NULL AND rm_val->>'pkgId' != '' 
+                                                                        THEN (rm_val->>'pkgId')::int
+                                                                        ELSE null
+                                                                    END
+                                                                ),
+                                                                ''
+                                                            ),
                                                             'products', COALESCE(
                                                                 (
                                                                     SELECT jsonb_agg(
@@ -1656,16 +1649,12 @@ const productModel = {
                                                                 ),
                                                                 '[]'::jsonb
                                                             ),
-                                    
-                                                            -- ✅ SWITCHBOARDS - ORDER PRESERVED
                                                             'switchboards', (
                                                                 SELECT jsonb_agg(
                                                                     jsonb_build_object(
                                                                         'name', sb_val->>'name',
                                                                         'mod', sb_val->'mod',
                                                                         'colorValue', sb_val->'colorValue',
-                                    
-                                                                        -- ✅ SWITCHBOARD PRODUCTS - ORDER PRESERVED
                                                                         'products', COALESCE(
                                                                             (
                                                                                 SELECT jsonb_agg(
@@ -1748,19 +1737,78 @@ const productModel = {
                                         ) WITH ORDINALITY AS t(hm_val, hm_idx)
                                     )
                                 ) ORDER BY fl_idx
-                            ) AS floor
+                            )
                             FROM jsonb_array_elements(
                                 COALESCE(p.floor, '[]'::jsonb)
                             ) WITH ORDINALITY AS t(fl_val, fl_idx)
-                        ) floors ON TRUE
-                                    
-                        LEFT JOIN products_wise_cache pwc ON pwc.proposal_id = p.id
-                        LEFT JOIN clients c ON c.id = p.client_id
-                        LEFT JOIN users u ON u.id = p.created_by
-                        LEFT JOIN roles r ON r.id = u.role_id
-
-                        WHERE p.client_id = $1
-                        AND p.deleted_at IS NULL; `, [clientId]);
+                        ) AS floor,
+                                
+                        CASE 
+                            WHEN p.proposal_type = 'productsWise' 
+                            THEN pwc.products_list
+                            ELSE NULL
+                        END AS products_wise_items,
+                                
+                        p.commissioning_percentage,
+                        p.discount_percentage,
+                        p.financial_breakdown,
+                        p.grand_total,
+                        p.installation_percentage,
+                        p.recipient_name,
+                        p.ship_to_address,
+                        p.use_same_address,
+                        p.use_same_recipient,
+                                
+                        jsonb_build_object(
+                            'id', c.id,
+                            'client_id', c.client_id,
+                            'first_name', c.first_name,
+                            'last_name', c.last_name,
+                            'email', c.email_id,
+                            'mobile', c.mobile_number,
+                            'address_line_one', c.address_line_one,
+                            'pin_code', c.pin_code,
+                            'country', c.country,
+                            'state', c.state,
+                            'district', c.district,
+                            'taluk', c.taluk,
+                            'division', c.division,
+                            'region', c.region,
+                            'company_name', c.company_name,
+                            'gst', c.gst,
+                            'company_address', c.company_address,
+                            'created_at', c.created_at,
+                            'updated_at', c.updated_at,
+                            'deleted_by', c.deleted_by,
+                            'deleted_at', c.deleted_at,
+                            'salesrepincharge', c.salesrepincharge,
+                            'installation_rep_in_charge', c.installation_rep_in_charge,
+                            'lead_source', c.lead_source,
+                            'date_of_installation', c.date_of_installation,
+                            'site_contractor_name', c.site_contractor_name,
+                            'site_contractor_phone', c.site_contractor_phone,
+                            'architect_name', c.architect_name,
+                            'architect_phone', c.architect_phone,
+                            'address_line_two', c.address_line_two
+                        ) AS client_details,
+                                
+                        jsonb_build_object(
+                            'id', u.id,
+                            'user_name', u.user_name,
+                            'role', jsonb_build_object(
+                                'role_id', r.id,
+                                'role_name', r.role_name
+                            )
+                        ) AS created_by
+                                
+                    FROM proposals p
+                                
+                    LEFT JOIN products_wise_cache pwc ON pwc.proposal_id = p.id
+                    LEFT JOIN clients c ON c.id = p.client_id
+                    LEFT JOIN users u ON u.id = p.created_by
+                    LEFT JOIN roles r ON r.id = u.role_id
+                                
+                     WHERE p.client_id = $1 AND p.deleted_at IS NULL; `, [clientId]);
 
             if (!result.rows.length) {
                 return {
