@@ -308,7 +308,221 @@ const productController = {
             console.error(error);
             res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: HttpMessage.INTERNAL_SERVER_ERROR });
         }
-    }
+    },
+
+    getProductUsageStats: async (req, res) => {
+        try {
+            const { period, from, to } = req.query;
+
+            const result = await productService.fetchProductUsageStats({
+                period,
+                fromDate: from,
+                toDate: to,
+            });
+
+            return res.status(200).json({
+                success: true,
+                message: 'Product usage stats fetched successfully',
+                ...result,
+            });
+        } catch (error) {
+            console.error('Error fetching product usage stats:', error);
+            return res.status(error.status || 500).json({
+                success: false,
+                message: error.status ? error.message : 'Failed to fetch product usage stats',
+            });
+        }
+    },
+
+    // createProposals: async (req, res) => {
+
+    //     try {
+
+    //         const userId =
+    //             req.user?.id || null;
+
+
+    //         const result =
+    //             await productService.createProposals(
+    //                 req.body,
+    //                 userId
+    //             );
+
+
+    //         return res.status(201).json({
+
+    //             success: true,
+
+    //             message:
+    //                 "Proposal created successfully",
+
+    //             data: result
+    //         });
+
+
+    //     } catch (error) {
+
+    //         console.error(
+    //             "createProposal error:",
+    //             error
+    //         );
+
+
+    //         return res.status(
+    //             error.statusCode || 500
+    //         ).json({
+
+    //             success: false,
+
+    //             message:
+    //                 error.message ||
+    //                 "Failed to create proposal"
+    //         });
+    //     }
+    // },
+
+    // // getProposals: async (req, res) => {
+
+    // //     try {
+
+    // //         const { id } = req.query;
+    // //         console.log(id);
+
+
+    // //         // if (!id) {
+
+    // //         //     return res.status(400).json({
+    // //         //         success: false,
+    // //         //         message: "Proposal id is required"
+    // //         //     });
+    // //         // }
+
+
+    // //         const result =
+    // //             await productService.getProposals(id);
+
+
+    // //         if (!result) {
+
+    // //             return res.status(404).json({
+    // //                 success: false,
+    // //                 message: "Proposal not found"
+    // //             });
+    // //         }
+
+
+    // //         return res.status(200).json({
+
+    // //             success: true,
+
+    // //             message:
+    // //                 "Proposal fetched successfully",
+
+    // //             data: result
+    // //         });
+
+
+    // //     } catch (error) {
+
+    // //         console.error(
+    // //             "getProposalById error:",
+    // //             error
+    // //         );
+
+
+    // //         return res.status(
+    // //             error.statusCode || 500
+    // //         ).json({
+
+    // //             success: false,
+
+    // //             message:
+    // //                 error.message ||
+    // //                 "Failed to fetch proposal"
+    // //         });
+    // //     }
+    // // },
+
+    // getProposals: async (req, res) => {
+
+    //     try {
+
+    //         // Query parameter is optional
+    //         const { id } = req.query;
+
+    //         console.log("Proposal ID:", id);
+
+
+    //         // ====================================================
+    //         // FETCH DATA
+    //         // ====================================================
+
+    //         const result =
+    //             await productService.getProposals(id);
+
+
+    //         // ====================================================
+    //         // NO DATA
+    //         // ====================================================
+
+    //         if (!result || result.length === 0) {
+
+    //             return res.status(404).json({
+
+    //                 success: false,
+
+    //                 message:
+    //                     id
+    //                         ? "Proposal not found"
+    //                         : "No proposals found",
+
+    //                 data: []
+    //             });
+    //         }
+
+
+    //         // ====================================================
+    //         // SUCCESS
+    //         // ====================================================
+
+    //         return res.status(200).json({
+
+    //             success: true,
+
+    //             message:
+    //                 id
+    //                     ? "Proposal fetched successfully"
+    //                     : "Proposals fetched successfully",
+
+    //             data: result
+    //         });
+
+
+    //     } catch (error) {
+
+    //         console.error(
+    //             "getProposals error:",
+    //             error
+    //         );
+
+
+    //         return res.status(
+    //             error.statusCode || 500
+    //         ).json({
+
+    //             success: false,
+
+    //             message:
+    //                 error.message ||
+    //                 "Failed to fetch proposals"
+    //         });
+    //     }
+    // }
+
+
+
+
+
 
 }
 

@@ -5,6 +5,7 @@ const { adminRegisterSchema, adminLoginSchema, rolePermission } = require('../va
 const adminController = require('../controllers/adminController');
 const commController = require('../common/commonControllers');
 const authMiddleware = require('../middleware/authMiddleware');
+const productController = require('../controllers/productController');
 
 // Public routes
 router.post('/register', adminController.register);
@@ -64,6 +65,8 @@ router.get(
   authMiddleware(),
   adminController.getDashboardGraphCount
 );
+
+router.get('/dashboard/usage-stats',  authMiddleware(), productController.getProductUsageStats)
 
 
 router.post(

@@ -551,6 +551,77 @@ const productModel = {
         }
     },
 
+
+// Builds the WHERE clause + params for date filtering
+ buildDateFilter : (period, fromDate, toDate) => {
+  if (fromDate && toDate) {
+    return { clause: `AND p.created_at::date BETWEEN $1 AND $2`, params: [fromDate, toDate] };
+  }
+
+  switch (period) {
+    case 'day':
+      return { clause: `AND p.created_at::date = CURRENT_DATE`, params: [] };
+    case 'week':
+      return { clause: `AND p.created_at >= date_trunc('week', CURRENT_DATE)`, params: [] };
+    case 'month':
+      return { clause: `AND p.created_at >= date_trunc('month', CURRENT_DATE)`, params: [] };
+    case 'year':
+      return { clause: `AND p.created_at >= date_trunc('year', CURRENT_DATE)`, params: [] };
+    default:
+      return { clause: '', params: [] }; // no filter = all time
+  }
+},
+
+getProductUsageCounts : async (period, fromDate, toDate) => {
+  const { clause, params } = await productModel.buildDateFilter(period, fromDate, toDate);
+
+  const query = `
+    WITH filtered_proposals AS (
+      SELECT id, floor
+      FROM proposals p
+      WHERE 1 = 1 ${clause}
+    ),
+    room_products AS (
+      SELECT
+        CASE jsonb_typeof(room_product)
+          WHEN 'object' THEN (room_product->>'id')::int
+          WHEN 'number' THEN (room_product#>>'{}')::int
+        END AS product_id
+      FROM filtered_proposals p,
+      LATERAL jsonb_array_elements(COALESCE(p.floor, '[]'::jsonb)) AS client,
+      LATERAL jsonb_array_elements(COALESCE(client->'homes', '[]'::jsonb)) AS home,
+      LATERAL jsonb_array_elements(COALESCE(home->'rooms', '[]'::jsonb)) AS room,
+      LATERAL jsonb_array_elements(COALESCE(room->'products', '[]'::jsonb)) AS room_product
+    ),
+    switchboard_products AS (
+      SELECT
+        CASE jsonb_typeof(sb_product)
+          WHEN 'object' THEN (sb_product->>'id')::int
+          WHEN 'number' THEN (sb_product#>>'{}')::int
+        END AS product_id
+      FROM filtered_proposals p,
+      LATERAL jsonb_array_elements(COALESCE(p.floor, '[]'::jsonb)) AS client,
+      LATERAL jsonb_array_elements(COALESCE(client->'homes', '[]'::jsonb)) AS home,
+      LATERAL jsonb_array_elements(COALESCE(home->'rooms', '[]'::jsonb)) AS room,
+      LATERAL jsonb_array_elements(COALESCE(room->'switchboards', '[]'::jsonb)) AS switchboard,
+      LATERAL jsonb_array_elements(COALESCE(switchboard->'products', '[]'::jsonb)) AS sb_product
+    ),
+    all_products AS (
+      SELECT product_id FROM room_products WHERE product_id IS NOT NULL
+      UNION ALL
+      SELECT product_id FROM switchboard_products WHERE product_id IS NOT NULL
+    )
+    SELECT pr.id AS product_id, pr.product_name AS product_name, COUNT(*)::int AS usage_count
+    FROM all_products ap
+    JOIN products pr ON pr.id = ap.product_id
+    GROUP BY pr.id, pr.product_name
+    ORDER BY usage_count DESC;
+  `;
+
+  const { rows } = await pool.query(query, params);
+  return rows;
+},
+
     checkProductById: async (productIds) => {
         try {
             const result = await pool.query(
@@ -1826,7 +1897,1324 @@ WHERE p.id = $1 AND p.deleted_at IS NULL; `, [proposalId]);
             console.error("Error inserting proposal:", error);
             throw error;
         }
-    }
+    },
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Proposal Model
+    |--------------------------------------------------------------------------
+    | All PostgreSQL raw queries are written here.
+    |--------------------------------------------------------------------------
+    */
+
+
+    // ============================================================
+    // CHECK CLIENT
+    // ============================================================
+
+    // checkClient: async (client, clientId) => {
+
+    //     const query = `
+    //         SELECT id
+    //         FROM clients
+    //         WHERE id = $1
+    //           AND deleted_at IS NULL
+    //         LIMIT 1
+    //     `;
+
+    //     const result = await client.query(query, [clientId]);
+
+    //     return result.rows[0] || null;
+    // },
+
+
+    // // ============================================================
+    // // CREATE PROPOSAL
+    // // ============================================================
+
+    // createProposal_new: async (client, data) => {
+
+    //     const query = `
+    //         INSERT INTO proposals_new (
+    //             proposal_no,
+    //             client_id,
+    //             proposal_title,
+    //             proposal_type,
+
+    //             recipient_name,
+    //             ship_to_address,
+
+    //             use_same_address,
+    //             use_same_recipient,
+
+    //             commissioning_percentage,
+    //             discount_percentage,
+    //             installation_percentage,
+
+    //             grand_products_total,
+    //             discount_amount,
+    //             after_discount,
+    //             installation_amount,
+    //             commissioning_amount,
+    //             non_nuos_products_total,
+    //             final_total,
+    //             grand_total,
+
+    //             created_by
+    //         )
+    //         VALUES (
+    //             $1, $2, $3, $4,
+    //             $5, $6,
+    //             $7, $8,
+    //             $9, $10, $11,
+    //             $12, $13, $14, $15, $16, $17, $18, $19,
+    //             $20
+    //         )
+    //         RETURNING id, proposal_no
+    //     `;
+
+    //     const values = [
+    //         data.proposalId,
+    //         data.client_id,
+    //         data.proposal_title,
+    //         data.proposal_type,
+
+    //         data.recipient_name,
+    //         data.ship_to_address,
+
+    //         data.use_same_address,
+    //         data.use_same_recipient,
+
+    //         data.commissioning_percentage,
+    //         data.discount_percentage,
+    //         data.installation_percentage,
+
+    //         data.grandProductsTotal,
+    //         data.discountAmount,
+    //         data.afterDiscount,
+    //         data.installationAmount,
+    //         data.commissioningAmount,
+    //         data.nonNuosProductsTotal,
+    //         data.finalTotal,
+    //         data.grand_total,
+
+    //         data.created_by
+    //     ];
+
+    //     const result = await client.query(query, values);
+
+    //     return result.rows[0];
+    // },
+
+
+    // // ============================================================
+    // // CREATE FLOOR
+    // // ============================================================
+
+    // createFloor: async (
+    //     client,
+    //     proposalId,
+    //     floorName,
+    //     displayOrder
+    // ) => {
+
+    //     const query = `
+    //         INSERT INTO proposal_floors (
+    //             proposal_id,
+    //             floor_name,
+    //             display_order
+    //         )
+    //         VALUES ($1, $2, $3)
+    //         RETURNING id
+    //     `;
+
+    //     const result = await client.query(query, [
+    //         proposalId,
+    //         floorName,
+    //         displayOrder
+    //     ]);
+
+    //     return result.rows[0];
+    // },
+
+
+    // // ============================================================
+    // // CREATE HOME
+    // // ============================================================
+
+    // createHome: async (
+    //     client,
+    //     floorId,
+    //     homeName,
+    //     displayOrder
+    // ) => {
+
+    //     const query = `
+    //         INSERT INTO proposal_homes (
+    //             floor_id,
+    //             home_name,
+    //             display_order
+    //         )
+    //         VALUES ($1, $2, $3)
+    //         RETURNING id
+    //     `;
+
+    //     const result = await client.query(query, [
+    //         floorId,
+    //         homeName,
+    //         displayOrder
+    //     ]);
+
+    //     return result.rows[0];
+    // },
+
+
+    // // ============================================================
+    // // CREATE ROOM
+    // // ============================================================
+
+    // createRoom: async (
+    //     client,
+    //     homeId,
+    //     roomName,
+    //     packageId,
+    //     displayOrder
+    // ) => {
+
+    //     const query = `
+    //         INSERT INTO proposal_rooms (
+    //             home_id,
+    //             room_name,
+    //             package_id,
+    //             display_order
+    //         )
+    //         VALUES ($1, $2, $3, $4)
+    //         RETURNING id
+    //     `;
+
+    //     const result = await client.query(query, [
+    //         homeId,
+    //         roomName,
+    //         packageId,
+    //         displayOrder
+    //     ]);
+
+    //     return result.rows[0];
+    // },
+
+
+    // // ============================================================
+    // // CREATE ROOM PRODUCT
+    // // ============================================================
+
+    // createRoomProduct: async (
+    //     client,
+    //     proposalId,
+    //     roomId,
+    //     product
+    // ) => {
+
+    //     const query = `
+    //         INSERT INTO proposal_products (
+    //             proposal_id,
+    //             room_id,
+    //             switchboard_id,
+    //             product_id,
+    //             quantity,
+
+    //             first_load,
+    //             second_load,
+    //             third_load,
+    //             forth_load,
+
+    //             display_order
+    //         )
+    //         VALUES (
+    //             $1,
+    //             $2,
+    //             NULL,
+    //             $3,
+    //             $4,
+    //             $5,
+    //             $6,
+    //             $7,
+    //             $8,
+    //             $9
+    //         )
+    //         RETURNING id
+    //     `;
+
+    //     const values = [
+    //         proposalId,
+    //         roomId,
+
+    //         product.id,
+    //         Number(product.quantity || 1),
+
+    //         product.firstLoad || "",
+    //         product.secondLoad || "",
+    //         product.thirdLoad || "",
+    //         product.forthLoad || "",
+
+    //         product.displayOrder || 0
+    //     ];
+
+    //     const result = await client.query(query, values);
+
+    //     return result.rows[0];
+    // },
+
+
+    // // ============================================================
+    // // CREATE SWITCHBOARD
+    // // ============================================================
+
+    // createSwitchboard: async (
+    //     client,
+    //     roomId,
+    //     switchboard,
+    //     displayOrder
+    // ) => {
+
+    //     const query = `
+    //         INSERT INTO proposal_switchboards (
+    //             room_id,
+    //             switchboard_name,
+    //             mod,
+    //             color_value,
+    //             display_order
+    //         )
+    //         VALUES ($1, $2, $3, $4, $5)
+    //         RETURNING id
+    //     `;
+
+    //     const values = [
+    //         roomId,
+    //         switchboard.name || "",
+    //         switchboard.mod ?? null,
+    //         switchboard.colorValue ?? null,
+    //         displayOrder
+    //     ];
+
+    //     const result = await client.query(query, values);
+
+    //     return result.rows[0];
+    // },
+
+
+    // // ============================================================
+    // // CREATE SWITCHBOARD PRODUCT
+    // // ============================================================
+
+    // createSwitchboardProduct: async (
+    //     client,
+    //     proposalId,
+    //     switchboardId,
+    //     product
+    // ) => {
+
+    //     const query = `
+    //         INSERT INTO proposal_products (
+    //             proposal_id,
+    //             room_id,
+    //             switchboard_id,
+    //             product_id,
+    //             quantity,
+
+    //             first_load,
+    //             second_load,
+    //             third_load,
+    //             forth_load,
+
+    //             display_order
+    //         )
+    //         VALUES (
+    //             $1,
+    //             NULL,
+    //             $2,
+    //             $3,
+    //             $4,
+    //             $5,
+    //             $6,
+    //             $7,
+    //             $8,
+    //             $9
+    //         )
+    //         RETURNING id
+    //     `;
+
+    //     const values = [
+    //         proposalId,
+    //         switchboardId,
+
+    //         product.id,
+    //         Number(product.quantity || 1),
+
+    //         product.firstLoad || "",
+    //         product.secondLoad || "",
+    //         product.thirdLoad || "",
+    //         product.forthLoad || "",
+
+    //         product.displayOrder || 0
+    //     ];
+
+    //     const result = await client.query(query, values);
+
+    //     return result.rows[0];
+    // },
+
+
+    // // ============================================================
+    // // CREATE PRODUCT WISE ITEM
+    // // ============================================================
+
+    // createProductWiseItem: async (
+    //     client,
+    //     proposalId,
+    //     product
+    // ) => {
+
+    //     const query = `
+    //         INSERT INTO proposal_product_items (
+    //             proposal_id,
+    //             product_id,
+    //             quantity,
+
+    //             first_load,
+    //             second_load,
+    //             third_load,
+    //             forth_load,
+
+    //             display_order
+    //         )
+    //         VALUES (
+    //             $1,
+    //             $2,
+    //             $3,
+    //             $4,
+    //             $5,
+    //             $6,
+    //             $7,
+    //             $8
+    //         )
+    //         RETURNING id
+    //     `;
+
+    //     const values = [
+    //         proposalId,
+
+    //         product.id,
+    //         Number(product.quantity || 1),
+
+    //         product.firstLoad || "",
+    //         product.secondLoad || "",
+    //         product.thirdLoad || "",
+    //         product.forthLoad || "",
+
+    //         product.displayOrder || 0
+    //     ];
+
+    //     const result = await client.query(query, values);
+
+    //     return result.rows[0];
+    // },
+
+    //  // ============================================================
+    // // GET PROPOSAL / ALL PROPOSALS
+    // // ============================================================
+
+    // getProposalById: async (
+    //     client,
+    //     proposalId = null
+    // ) => {
+
+    //     const query = `
+
+    //         SELECT
+
+    //             -- =================================================
+    //             -- PROPOSAL
+    //             -- =================================================
+
+    //             p.id AS proposal_db_id,
+
+    //             p.proposal_no,
+
+    //             p.client_id AS proposal_client_id,
+
+    //             p.proposal_title,
+
+    //             p.proposal_type,
+
+    //             p.recipient_name,
+
+    //             p.ship_to_address,
+
+    //             p.use_same_address,
+
+    //             p.use_same_recipient,
+
+    //             p.commissioning_percentage,
+
+    //             p.discount_percentage,
+
+    //             p.installation_percentage,
+
+    //             p.grand_products_total,
+
+    //             p.discount_amount,
+
+    //             p.after_discount,
+
+    //             p.installation_amount,
+
+    //             p.commissioning_amount,
+
+    //             p.non_nuos_products_total,
+
+    //             p.final_total,
+
+    //             p.grand_total,
+
+    //             p.created_by,
+
+    //             p.updated_by,
+
+    //             p.created_at,
+
+    //             p.updated_at,
+
+
+    //             -- =================================================
+    //             -- CLIENT
+    //             -- =================================================
+
+    //             c.id AS client_db_id,
+
+    //             c.client_id AS client_code,
+
+    //             c.first_name,
+
+    //             c.last_name,
+
+    //             c.email_id AS email,
+
+    //             c.mobile_number AS mobile,
+
+    //             c.gst,
+
+    //             c.company_name,
+
+    //             c.state,
+
+    //             c.district,
+
+    //             c.taluk,
+
+    //             c.region,
+
+    //             c.country,
+
+    //             c.division,
+
+    //             c.pin_code,
+
+    //             c.address_line_one,
+
+    //             c.address_line_two,
+
+    //             c.company_address,
+
+    //             c.lead_source,
+
+    //             c.architect_name,
+
+    //             c.architect_phone,
+
+    //             c.date_of_installation,
+
+    //             c.site_contractor_name,
+
+    //             c.site_contractor_phone,
+
+    //             c.installation_rep_in_charge
+
+
+    //         FROM proposals_new p
+
+    //         LEFT JOIN clients c
+    //             ON c.id = p.client_id
+
+    //         WHERE p.deleted_at IS NULL
+
+    //         AND (
+    //             $1::BIGINT IS NULL
+    //             OR p.id = $1::BIGINT
+    //         )
+
+    //         ORDER BY p.id ASC
+    //     `;
+
+
+    //     const result =
+    //         await client.query(
+    //             query,
+    //             [proposalId || null]
+    //         );
+
+
+    //     return result.rows;
+    // },
+
+
+    // // ============================================================
+    // // GET FLOORS
+    // // ============================================================
+
+    // getProposalFloors: async (
+    //     client,
+    //     proposalId
+    // ) => {
+
+    //     const query = `
+
+    //         SELECT
+
+    //             id,
+
+    //             proposal_id,
+
+    //             floor_name AS name,
+
+    //             display_order
+
+    //         FROM proposal_floors
+
+    //         WHERE proposal_id = $1
+
+    //         ORDER BY
+    //             display_order ASC,
+    //             id ASC
+    //     `;
+
+
+    //     const result =
+    //         await client.query(
+    //             query,
+    //             [proposalId]
+    //         );
+
+
+    //     return result.rows;
+    // },
+
+
+    // // ============================================================
+    // // GET HOMES
+    // // ============================================================
+
+    // getProposalHomes: async (
+    //     client,
+    //     floorId
+    // ) => {
+
+    //     const query = `
+
+    //         SELECT
+
+    //             id,
+
+    //             floor_id,
+
+    //             home_name AS name,
+
+    //             display_order
+
+    //         FROM proposal_homes
+
+    //         WHERE floor_id = $1
+
+    //         ORDER BY
+    //             display_order ASC,
+    //             id ASC
+    //     `;
+
+
+    //     const result =
+    //         await client.query(
+    //             query,
+    //             [floorId]
+    //         );
+
+
+    //     return result.rows;
+    // },
+
+
+    // // ============================================================
+    // // GET ROOMS
+    // // ============================================================
+
+    // getProposalRooms: async (
+    //     client,
+    //     homeId
+    // ) => {
+
+    //     const query = `
+
+    //         SELECT
+
+    //             r.id,
+
+    //             r.home_id,
+
+    //             r.room_name AS name,
+
+    //             r.package_id AS "pkgId",
+
+    //             r.display_order,
+
+    //             pp.room_name AS room_name
+
+    //         FROM proposal_rooms r
+
+    //         LEFT JOIN product_packages pp
+    //             ON pp.id = r.package_id
+
+    //         WHERE r.home_id = $1
+
+    //         ORDER BY
+    //             r.display_order ASC,
+    //             r.id ASC
+    //     `;
+
+
+    //     const result =
+    //         await client.query(
+    //             query,
+    //             [homeId]
+    //         );
+
+
+    //     return result.rows;
+    // },
+
+
+    // // ============================================================
+    // // GET ROOM PRODUCTS
+    // // ============================================================
+
+    // getRoomProducts: async (
+    //     client,
+    //     proposalId,
+    //     roomId
+    // ) => {
+
+    //     const query = `
+
+    //         SELECT
+
+    //             pp.id AS proposal_product_id,
+
+    //             pp.proposal_id,
+
+    //             pp.room_id,
+
+    //             pp.switchboard_id,
+
+    //             pp.product_id,
+
+    //             pp.quantity,
+
+    //             pp.first_load,
+
+    //             pp.second_load,
+
+    //             pp.third_load,
+
+    //             pp.forth_load,
+
+    //             pp.display_order,
+
+
+    //             -- PRODUCT
+    //             p.product_name,
+
+    //             p.price,
+
+    //             p.mod_size AS "modSize",
+
+    //             p.category,
+
+    //             p.wiring_type,
+
+    //             p.wiring_type_id,
+
+
+    //             -- IMAGES
+    //             COALESCE(
+    //                 ARRAY_AGG(
+    //                     DISTINCT pi.image_url
+    //                 ) FILTER (
+    //                     WHERE pi.image_url IS NOT NULL
+    //                 ),
+    //                 ARRAY[]::TEXT[]
+    //             ) AS images
+
+
+    //         FROM proposal_products pp
+
+    //         INNER JOIN products p
+    //             ON p.id = pp.product_id
+
+    //         LEFT JOIN product_images pi
+    //             ON pi.product_id = p.id
+
+    //         WHERE pp.proposal_id = $1
+
+    //           AND pp.room_id = $2
+
+    //           AND pp.switchboard_id IS NULL
+
+    //         GROUP BY
+
+    //             pp.id,
+    //             pp.proposal_id,
+    //             pp.room_id,
+    //             pp.switchboard_id,
+    //             pp.product_id,
+    //             pp.quantity,
+    //             pp.first_load,
+    //             pp.second_load,
+    //             pp.third_load,
+    //             pp.forth_load,
+    //             pp.display_order,
+
+    //             p.id,
+    //             p.product_name,
+    //             p.price,
+    //             p.mod_size,
+    //             p.category,
+    //             p.wiring_type,
+    //             p.wiring_type_id
+
+    //         ORDER BY
+
+    //             pp.display_order ASC,
+    //             pp.id ASC
+    //     `;
+
+
+    //     const result =
+    //         await client.query(
+    //             query,
+    //             [
+    //                 proposalId,
+    //                 roomId
+    //             ]
+    //         );
+
+
+    //     return result.rows;
+    // },
+
+
+    // // ============================================================
+    // // GET SWITCHBOARDS
+    // // ============================================================
+
+    // getProposalSwitchboards: async (
+    //     client,
+    //     roomId
+    // ) => {
+
+    //     const query = `
+
+    //         SELECT
+
+    //             id,
+
+    //             room_id,
+
+    //             switchboard_name,
+
+    //             mod,
+
+    //             color_value,
+
+    //             display_order
+
+    //         FROM proposal_switchboards
+
+    //         WHERE room_id = $1
+
+    //         ORDER BY
+    //             display_order ASC,
+    //             id ASC
+    //     `;
+
+
+    //     const result =
+    //         await client.query(
+    //             query,
+    //             [roomId]
+    //         );
+
+
+    //     return result.rows;
+    // },
+
+
+    // // ============================================================
+    // // GET SWITCHBOARD PRODUCTS
+    // // ============================================================
+
+    // getSwitchboardProducts: async (
+    //     client,
+    //     proposalId,
+    //     switchboardId
+    // ) => {
+
+    //     const query = `
+
+    //         SELECT
+
+    //             pp.id AS proposal_product_id,
+
+    //             pp.proposal_id,
+
+    //             pp.room_id,
+
+    //             pp.switchboard_id,
+
+    //             pp.product_id,
+
+    //             pp.quantity,
+
+    //             pp.first_load,
+
+    //             pp.second_load,
+
+    //             pp.third_load,
+
+    //             pp.forth_load,
+
+    //             pp.display_order,
+
+
+    //             -- PRODUCT
+    //             p.product_name,
+
+    //             p.price,
+
+    //             p.mod_size AS "modSize",
+
+    //             p.category,
+
+    //             p.wiring_type,
+
+    //             p.wiring_type_id,
+
+
+    //             -- IMAGES
+    //             COALESCE(
+    //                 ARRAY_AGG(
+    //                     DISTINCT pi.image_url
+    //                 ) FILTER (
+    //                     WHERE pi.image_url IS NOT NULL
+    //                 ),
+    //                 ARRAY[]::TEXT[]
+    //             ) AS images
+
+
+    //         FROM proposal_products pp
+
+    //         INNER JOIN products p
+    //             ON p.id = pp.product_id
+
+    //         LEFT JOIN product_images pi
+    //             ON pi.product_id = p.id
+
+    //         WHERE pp.proposal_id = $1
+
+    //           AND pp.switchboard_id = $2
+
+    //           AND pp.room_id IS NULL
+
+    //         GROUP BY
+
+    //             pp.id,
+    //             pp.proposal_id,
+    //             pp.room_id,
+    //             pp.switchboard_id,
+    //             pp.product_id,
+    //             pp.quantity,
+    //             pp.first_load,
+    //             pp.second_load,
+    //             pp.third_load,
+    //             pp.forth_load,
+    //             pp.display_order,
+
+    //             p.id,
+    //             p.product_name,
+    //             p.price,
+    //             p.mod_size,
+    //             p.category,
+    //             p.wiring_type,
+    //             p.wiring_type_id
+
+    //         ORDER BY
+
+    //             pp.display_order ASC,
+    //             pp.id ASC
+    //     `;
+
+
+    //     const result =
+    //         await client.query(
+    //             query,
+    //             [
+    //                 proposalId,
+    //                 switchboardId
+    //             ]
+    //         );
+
+
+    //     return result.rows;
+    // },
+
+
+    // // ============================================================
+    // // GET PRODUCT WISE ITEMS
+    // // ============================================================
+
+    // getProductWiseItems: async (
+    //     client,
+    //     proposalId
+    // ) => {
+
+    //     const query = `
+
+    //         SELECT
+
+    //             ppi.id AS proposal_product_item_id,
+
+    //             ppi.proposal_id,
+
+    //             ppi.product_id,
+
+    //             ppi.quantity,
+
+    //             ppi.first_load,
+
+    //             ppi.second_load,
+
+    //             ppi.third_load,
+
+    //             ppi.forth_load,
+
+    //             ppi.display_order,
+
+
+    //             -- PRODUCT
+    //             p.product_name,
+
+    //             p.price,
+
+    //             p.mod_size AS "modSize",
+
+    //             p.category,
+
+    //             p.wiring_type,
+
+    //             p.wiring_type_id,
+
+
+    //             -- IMAGES
+    //             COALESCE(
+    //                 ARRAY_AGG(
+    //                     DISTINCT pi.image_url
+    //                 ) FILTER (
+    //                     WHERE pi.image_url IS NOT NULL
+    //                 ),
+    //                 ARRAY[]::TEXT[]
+    //             ) AS images
+
+
+    //         FROM proposal_product_items ppi
+
+    //         INNER JOIN products p
+    //             ON p.id = ppi.product_id
+
+    //         LEFT JOIN product_images pi
+    //             ON pi.product_id = p.id
+
+    //         WHERE ppi.proposal_id = $1
+
+    //         GROUP BY
+
+    //             ppi.id,
+    //             ppi.proposal_id,
+    //             ppi.product_id,
+    //             ppi.quantity,
+    //             ppi.first_load,
+    //             ppi.second_load,
+    //             ppi.third_load,
+    //             ppi.forth_load,
+    //             ppi.display_order,
+
+    //             p.id,
+    //             p.product_name,
+    //             p.price,
+    //             p.mod_size,
+    //             p.category,
+    //             p.wiring_type,
+    //             p.wiring_type_id
+
+    //         ORDER BY
+
+    //             ppi.display_order ASC,
+    //             ppi.id ASC
+    //     `;
+
+
+    //     const result =
+    //         await client.query(
+    //             query,
+    //             [proposalId]
+    //         );
+
+
+    //     return result.rows;
+    // },
+
+
+
+
+
+    // // ============================================================
+    // // GET ALL FLOORS
+    // // ============================================================
+
+    // getAllProposalFloors: async (client) => {
+
+    //     const query = `
+    //         SELECT
+    //             id,
+    //             proposal_id,
+    //             floor_name,
+    //             display_order
+
+    //         FROM proposal_floors
+
+    //         ORDER BY
+    //             proposal_id,
+    //             display_order ASC,
+    //             id ASC
+    //     `;
+
+    //     const result = await client.query(query);
+
+    //     return result.rows;
+    // },
+
+
+    // // ============================================================
+    // // GET ALL HOMES
+    // // ============================================================
+
+    // getAllProposalHomes: async (client) => {
+
+    //     const query = `
+    //         SELECT
+    //             id,
+    //             floor_id,
+    //             home_name,
+    //             display_order
+
+    //         FROM proposal_homes
+
+    //         ORDER BY
+    //             floor_id,
+    //             display_order ASC,
+    //             id ASC
+    //     `;
+
+    //     const result = await client.query(query);
+
+    //     return result.rows;
+    // },
+
+
+    // // ============================================================
+    // // GET ALL ROOMS
+    // // ============================================================
+
+    // getAllProposalRooms: async (client) => {
+
+    //     const query = `
+    //         SELECT
+    //             r.id,
+    //             r.home_id,
+    //             r.room_name,
+    //             r.package_id,
+    //             r.display_order,
+
+    //             pkg.name AS package_name
+
+    //         FROM proposal_rooms r
+
+    //         LEFT JOIN packages pkg
+    //             ON pkg.id = r.package_id
+
+    //         ORDER BY
+    //             r.home_id,
+    //             r.display_order ASC,
+    //             r.id ASC
+    //     `;
+
+    //     const result = await client.query(query);
+
+    //     return result.rows;
+    // },
+
+
+    // // ============================================================
+    // // GET ALL SWITCHBOARDS
+    // // ============================================================
+
+    // getAllProposalSwitchboards: async (client) => {
+
+    //     const query = `
+    //         SELECT
+    //             id,
+    //             room_id,
+    //             switchboard_name,
+    //             mod,
+    //             color_value,
+    //             display_order
+
+    //         FROM proposal_switchboards
+
+    //         ORDER BY
+    //             room_id,
+    //             display_order ASC,
+    //             id ASC
+    //     `;
+
+    //     const result = await client.query(query);
+
+    //     return result.rows;
+    // },
+
+
+    // // ============================================================
+    // // GET ALL STRUCTURE PRODUCTS
+    // // ============================================================
+
+    // getAllProposalProducts: async (client) => {
+
+    //     const query = `
+    //         SELECT
+
+    //             pp.id AS proposal_product_id,
+
+    //             pp.proposal_id,
+    //             pp.room_id,
+    //             pp.switchboard_id,
+
+    //             pp.product_id,
+
+    //             pp.quantity,
+
+    //             pp.first_load,
+    //             pp.second_load,
+    //             pp.third_load,
+    //             pp.forth_load,
+
+    //             pp.display_order,
+
+    //             -- Product master data
+    //             p.id,
+    //             p.name,
+    //             p.price,
+    //             p.images,
+    //             p.mod_size AS "modSize",
+    //             p.category,
+    //             p.wiring_type,
+    //             p.wiring_type_id
+
+    //         FROM proposal_products pp
+
+    //         INNER JOIN products p
+    //             ON p.id = pp.product_id
+
+    //         ORDER BY
+    //             pp.proposal_id,
+    //             pp.display_order ASC,
+    //             pp.id ASC
+    //     `;
+
+    //     const result = await client.query(query);
+
+    //     return result.rows;
+    // },
+
+
+    // // ============================================================
+    // // GET ALL PRODUCT WISE ITEMS
+    // // ============================================================
+
+    // getAllProductWiseItems: async (client) => {
+
+    //     const query = `
+    //         SELECT
+
+    //             ppi.id AS proposal_product_item_id,
+
+    //             ppi.proposal_id,
+
+    //             ppi.product_id,
+
+    //             ppi.quantity,
+
+    //             ppi.first_load,
+    //             ppi.second_load,
+    //             ppi.third_load,
+    //             ppi.forth_load,
+
+    //             ppi.display_order,
+
+    //             -- Product master data
+    //             p.id,
+    //             p.name,
+    //             p.price,
+    //             p.images,
+    //             p.mod_size AS "modSize",
+    //             p.category,
+    //             p.wiring_type,
+    //             p.wiring_type_id
+
+    //         FROM proposal_product_items ppi
+
+    //         INNER JOIN products p
+    //             ON p.id = ppi.product_id
+
+    //         ORDER BY
+    //             ppi.proposal_id,
+    //             ppi.display_order ASC,
+    //             ppi.id ASC
+    //     `;
+
+    //     const result = await client.query(query);
+
+    //     return result.rows;
+    // },
+
+
+
+
 }
 
 module.exports = { productModel }

@@ -380,7 +380,55 @@ const dbModel = {
     try {
 
       let query = `
-            SELECT DISTINCT
+                        SELECT DISTINCT
+                c.id,
+                c.client_id,
+                c.user_id,
+                r.role_name,
+                u.role_id,
+                c.client_category,
+                u.user_name,
+                c.first_name,
+                c.last_name,
+                c.iso_code,
+                c.mobile_number,
+                c.email_id,
+                c.address_line_one,
+                c.address_line_two,
+                c.pin_code,
+                c.country,
+                c.state,
+                c.district,
+                c.taluk,
+                c.division,
+                c.region,
+                c.company_name,
+                c.company_address,
+                c.gst,
+                c.salesrepincharge,
+                c.installation_rep_in_charge,
+                c.lead_source,
+                c.date_of_installation,
+                c.site_contractor_name,
+                c.site_contractor_phone,
+                c.architect_name,
+                c.architect_phone,
+                p.updated_at
+            FROM clients c
+            INNER JOIN users u ON c.user_id = u.id
+            INNER JOIN roles r ON r.id = u.role_id
+            INNER JOIN proposals p ON p.client_id = c.id
+            WHERE 
+                c.deleted_by IS NULL
+                AND (
+                    $1 = ANY(ARRAY[3,16,17,18,19,20,21,23])
+                    OR c.user_id = $1
+                )
+                AND (
+                    $2::text IS NULL
+                    OR TRIM(LOWER(c.client_category)) = TRIM(LOWER($2))
+                )
+            GROUP BY 
                 c.id,
                 c.client_id,
                 c.user_id,
@@ -413,24 +461,7 @@ const dbModel = {
                 c.site_contractor_phone,
                 c.architect_name,
                 c.architect_phone
-            FROM clients c
-            INNER JOIN users u
-                ON c.user_id = u.id
-            INNER JOIN roles r
-                ON r.id = u.role_id
-            INNER JOIN proposals p
-            	ON p.client_id = c.id
-            WHERE
-                c.deleted_by IS NULL
-                AND (
-                    $1 = ANY(ARRAY[3,16,17,18,19,20,21,23])
-                    OR c.user_id = $1
-                )
-                AND (
-                    $2::text IS NULL
-                    OR TRIM(LOWER(c.client_category)) = TRIM(LOWER($2))
-                )
-            ORDER BY c.first_name ASC
+            ORDER BY p.updated_at DESC;
         `;
       const result = await pool.query(query, [
         userId,
