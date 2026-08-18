@@ -413,7 +413,8 @@ const dbModel = {
                 c.site_contractor_phone,
                 c.architect_name,
                 c.architect_phone,
-                p.updated_at
+                p.updated_at,
+                p.created_at 
             FROM clients c
             INNER JOIN users u ON c.user_id = u.id
             INNER JOIN roles r ON r.id = u.role_id
@@ -460,7 +461,9 @@ const dbModel = {
                 c.site_contractor_name,
                 c.site_contractor_phone,
                 c.architect_name,
-                c.architect_phone
+                c.architect_phone,
+                p.updated_at,
+                p.created_at 
             ORDER BY p.updated_at DESC;
         `;
       const result = await pool.query(query, [
