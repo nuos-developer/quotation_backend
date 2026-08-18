@@ -380,91 +380,89 @@ const dbModel = {
     try {
 
       let query = `
-                        SELECT DISTINCT
-                c.id,
-                c.client_id,
-                c.user_id,
-                r.role_name,
-                u.role_id,
-                c.client_category,
-                u.user_name,
-                c.first_name,
-                c.last_name,
-                c.iso_code,
-                c.mobile_number,
-                c.email_id,
-                c.address_line_one,
-                c.address_line_two,
-                c.pin_code,
-                c.country,
-                c.state,
-                c.district,
-                c.taluk,
-                c.division,
-                c.region,
-                c.company_name,
-                c.company_address,
-                c.gst,
-                c.salesrepincharge,
-                c.installation_rep_in_charge,
-                c.lead_source,
-                c.date_of_installation,
-                c.site_contractor_name,
-                c.site_contractor_phone,
-                c.architect_name,
-                c.architect_phone,
-                p.updated_at,
-                p.created_at 
-            FROM clients c
-            INNER JOIN users u ON c.user_id = u.id
-            INNER JOIN roles r ON r.id = u.role_id
-            INNER JOIN proposals p ON p.client_id = c.id
-            WHERE 
-                c.deleted_by IS NULL
-                AND (
-                    $1 = ANY(ARRAY[3,16,17,18,19,20,21,23])
-                    OR c.user_id = $1
-                )
-                AND (
-                    $2::text IS NULL
-                    OR TRIM(LOWER(c.client_category)) = TRIM(LOWER($2))
-                )
-            GROUP BY 
-                c.id,
-                c.client_id,
-                c.user_id,
-                r.role_name,
-                u.role_id,
-                c.client_category,
-                u.user_name,
-                c.first_name,
-                c.last_name,
-                c.iso_code,
-                c.mobile_number,
-                c.email_id,
-                c.address_line_one,
-                c.address_line_two,
-                c.pin_code,
-                c.country,
-                c.state,
-                c.district,
-                c.taluk,
-                c.division,
-                c.region,
-                c.company_name,
-                c.company_address,
-                c.gst,
-                c.salesrepincharge,
-                c.installation_rep_in_charge,
-                c.lead_source,
-                c.date_of_installation,
-                c.site_contractor_name,
-                c.site_contractor_phone,
-                c.architect_name,
-                c.architect_phone,
-                p.updated_at,
-                p.created_at 
-            ORDER BY p.updated_at DESC;
+                        SELECT 
+                            c.id,
+                            c.client_id,
+                            c.user_id,
+                            r.role_name,
+                            u.role_id,
+                            c.client_category,
+                            u.user_name,
+                            c.first_name,
+                            c.last_name,
+                            c.iso_code,
+                            c.mobile_number,
+                            c.email_id,
+                            c.address_line_one,
+                            c.address_line_two,
+                            c.pin_code,
+                            c.country,
+                            c.state,
+                            c.district,
+                            c.taluk,
+                            c.division,
+                            c.region,
+                            c.company_name,
+                            c.company_address,
+                            c.gst,
+                            c.salesrepincharge,
+                            c.installation_rep_in_charge,
+                            c.lead_source,
+                            c.date_of_installation,
+                            c.site_contractor_name,
+                            c.site_contractor_phone,
+                            c.architect_name,
+                            c.architect_phone,
+                            MAX(p.updated_at) as latest_proposal_updated_at,
+                            MAX(p.created_at) as latest_proposal_created_at
+                        FROM clients c
+                        INNER JOIN users u ON c.user_id = u.id
+                        INNER JOIN roles r ON r.id = u.role_id
+                        INNER JOIN proposals p ON p.client_id = c.id
+                        WHERE 
+                            c.deleted_by IS NULL
+                            AND (
+                                $1 = ANY(ARRAY[3,16,17,18,19,20,21,23])
+                                OR c.user_id = $1
+                            )
+                            AND (
+                                $2::text IS NULL
+                                OR TRIM(LOWER(c.client_category)) = TRIM(LOWER($2))
+                            )
+                        GROUP BY 
+                            c.id,
+                            c.client_id,
+                            c.user_id,
+                            r.role_name,
+                            u.role_id,
+                            c.client_category,
+                            u.user_name,
+                            c.first_name,
+                            c.last_name,
+                            c.iso_code,
+                            c.mobile_number,
+                            c.email_id,
+                            c.address_line_one,
+                            c.address_line_two,
+                            c.pin_code,
+                            c.country,
+                            c.state,
+                            c.district,
+                            c.taluk,
+                            c.division,
+                            c.region,
+                            c.company_name,
+                            c.company_address,
+                            c.gst,
+                            c.salesrepincharge,
+                            c.installation_rep_in_charge,
+                            c.lead_source,
+                            c.date_of_installation,
+                            c.site_contractor_name,
+                            c.site_contractor_phone,
+                            c.architect_name,
+                            c.architect_phone
+                        ORDER BY latest_proposal_updated_at DESC;;
         `;
       const result = await pool.query(query, [
         userId,
@@ -777,16 +775,16 @@ const dbModel = {
 
     try {
 
-        let proposalGraphQuery = "";
+      let proposalGraphQuery = "";
 
-        switch (graph) {
+      switch (graph) {
 
-            // ============================================
-            // Last 30 Days
-            // ============================================
-            case "day":
+        // ============================================
+        // Last 30 Days
+        // ============================================
+        case "day":
 
-                proposalGraphQuery = `
+          proposalGraphQuery = `
                     SELECT
                         TO_CHAR(created_at, 'DD Mon YYYY') AS label,
                         COUNT(*)::INT AS proposal_count,
@@ -801,14 +799,14 @@ const dbModel = {
                     ORDER BY
                         sort_date;
                 `;
-                break;
+          break;
 
-            // ============================================
-            // Last 5 Weeks
-            // ============================================
-            case "week":
+        // ============================================
+        // Last 5 Weeks
+        // ============================================
+        case "week":
 
-                proposalGraphQuery = `
+          proposalGraphQuery = `
                     SELECT
                         CONCAT(
                             EXTRACT(YEAR FROM created_at),
@@ -834,14 +832,14 @@ const dbModel = {
                     ORDER BY
                         sort_date;
                 `;
-                break;
+          break;
 
-            // ============================================
-            // Last 6 Months
-            // ============================================
-            case "month":
+        // ============================================
+        // Last 6 Months
+        // ============================================
+        case "month":
 
-                proposalGraphQuery = `
+          proposalGraphQuery = `
                     SELECT
                         TO_CHAR(created_at, 'Mon YYYY') AS label,
 
@@ -862,14 +860,14 @@ const dbModel = {
                     ORDER BY
                         sort_date;
                 `;
-                break;
+          break;
 
-            // ============================================
-            // Last 5 Years
-            // ============================================
-            case "year":
+        // ============================================
+        // Last 5 Years
+        // ============================================
+        case "year":
 
-                proposalGraphQuery = `
+          proposalGraphQuery = `
                     SELECT
 
                         EXTRACT(YEAR FROM created_at)::TEXT AS label,
@@ -890,14 +888,14 @@ const dbModel = {
                     ORDER BY
                         sort_year;
                 `;
-                break;
+          break;
 
-            // ============================================
-            // Default (Last 6 Months)
-            // ============================================
-            default:
+        // ============================================
+        // Default (Last 6 Months)
+        // ============================================
+        default:
 
-                proposalGraphQuery = `
+          proposalGraphQuery = `
                     SELECT
                         TO_CHAR(created_at, 'Mon YYYY') AS label,
 
@@ -918,22 +916,22 @@ const dbModel = {
                     ORDER BY
                         sort_date;
                 `;
-        }
+      }
 
-        const proposalGraphResult = await pool.query(proposalGraphQuery);
+      const proposalGraphResult = await pool.query(proposalGraphQuery);
 
-        return {
-            proposalGraph: proposalGraphResult.rows
-        };
+      return {
+        proposalGraph: proposalGraphResult.rows
+      };
 
     } catch (error) {
 
-        console.error(error);
-        throw error;
+      console.error(error);
+      throw error;
 
     }
 
-},
+  },
 
   updateUserPermission: async (data, userId) => {
     const { module_id, permissions } = data;

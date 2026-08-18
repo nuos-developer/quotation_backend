@@ -193,7 +193,6 @@ const productService = {
         }
     },
 
-
     fetchProductUsageStats: async ({ period, fromDate, toDate }) => {
         if (period && !VALID_PERIODS.includes(period)) {
             const err = new Error(`Invalid period. Use one of: ${VALID_PERIODS.join(', ')}`);
@@ -209,6 +208,47 @@ const productService = {
             total_products: usageStats.length,
             total_usage: totalUsage,
             data: usageStats,
+        };
+    },
+
+    fetchAllProducts: async () => {
+        return productModel.getAllProducts();
+    },
+
+    formatBucketLabel: (date, period) => {
+        const d = new Date(date);
+        if (period === 'day') return d.toISOString().slice(0, 10);                 // 2026-08-18
+        if (period === 'week') return `Week of ${d.toISOString().slice(0, 10)}`;
+        if (period === 'year') return d.getFullYear().toString();
+        return d.toLocaleString('default', { month: 'short', year: 'numeric' });   // Aug 2026
+    },
+
+    fetchProductUsageTrend: async ({ productId, period }) => {
+        if (!productId) {
+            const err = new Error('product_id is required');
+            err.status = 400;
+            throw err;
+        }
+        if (period && !VALID_PERIODS.includes(period)) {
+            const err = new Error(`Invalid period. Use one of: ${VALID_PERIODS.join(', ')}`);
+            err.status = 400;
+            throw err;
+        }
+
+        const rows = await productModel.getProductUsageTrend(productId, period);
+
+        const data = rows.map(row => ({
+            label: productService.formatBucketLabel(row.bucket_date, period),
+            usage_count: row.usage_count,
+        }));
+
+        const totalUsage = data.reduce((sum, item) => sum + item.usage_count, 0);
+
+        return {
+            product_id: Number(productId),
+            period: period || 'month',
+            total_usage: totalUsage,
+            data,
         };
     },
 

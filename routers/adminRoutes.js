@@ -68,6 +68,10 @@ router.get(
 
 router.get('/dashboard/usage-stats',  authMiddleware(), productController.getProductUsageStats)
 
+router.get('/dashboard/list', authMiddleware(), productController.getAllProducts);
+router.get('/dashboard/usage-trend', authMiddleware(), productController.getProductUsageTrend);
+
+
 
 router.post(
     "/create_room_package",

@@ -310,6 +310,30 @@ const productController = {
         }
     },
 
+    getAllProducts: async (req, res) => {
+        try {
+            const products = await productService.fetchAllProducts();
+            return res.status(200).json({ success: true, data: products });
+        } catch (error) {
+            console.error('Error fetching products:', error);
+            return res.status(500).json({ success: false, message: 'Failed to fetch products' });
+        }
+    },
+
+    getProductUsageTrend: async (req, res) => {
+        try {
+            const { product_id, period } = req.query;
+            const result = await productService.fetchProductUsageTrend({ productId: product_id, period });
+            return res.status(200).json({ success: true, ...result });
+        } catch (error) {
+            console.error('Error fetching product usage trend:', error);
+            return res.status(error.status || 500).json({
+                success: false,
+                message: error.status ? error.message : 'Failed to fetch product usage trend',
+            });
+        }
+    },
+
     getProductUsageStats: async (req, res) => {
         try {
             const { period, from, to } = req.query;

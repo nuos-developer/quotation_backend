@@ -551,8 +551,6 @@ const productModel = {
         }
     },
 
-
-// Builds the WHERE clause + params for date filtering
  buildDateFilter : (period, fromDate, toDate) => {
   if (fromDate && toDate) {
     return { clause: `AND p.created_at::date BETWEEN $1 AND $2`, params: [fromDate, toDate] };
@@ -572,6 +570,7 @@ const productModel = {
   }
 },
 
+// Total usage count per product (ranked list, with optional date filter)
 getProductUsageCounts : async (period, fromDate, toDate) => {
   const { clause, params } = await productModel.buildDateFilter(period, fromDate, toDate);
 
@@ -620,6 +619,67 @@ getProductUsageCounts : async (period, fromDate, toDate) => {
 
   const { rows } = await pool.query(query, params);
   return rows;
+},
+
+// List of all products (for dropdown)
+ getAllProducts : async () => {
+  const query = `SELECT id, product_name FROM products WHERE is_active = true ORDER BY product_name ASC;`;
+  const { rows } = await pool.query(query);
+  return rows;
+},
+
+// Usage trend over time for a single selected product
+ getProductUsageTrend :async (productId, period = 'month') => {
+  const bucketMap = {
+    day: 'day',
+    week: 'week',
+    month: 'month',
+    year: 'year',
+  };
+  const bucket = bucketMap[period] || 'month';
+
+  const query = `
+    WITH all_occurrences AS (
+      SELECT
+        p.id AS proposal_id,
+        p.created_at,
+        CASE jsonb_typeof(room_product)
+          WHEN 'object' THEN (room_product->>'id')::int
+          WHEN 'number' THEN (room_product#>>'{}')::int
+        END AS product_id
+      FROM proposals p,
+      LATERAL jsonb_array_elements(COALESCE(p.floor, '[]'::jsonb)) AS client,
+      LATERAL jsonb_array_elements(COALESCE(client->'homes', '[]'::jsonb)) AS home,
+      LATERAL jsonb_array_elements(COALESCE(home->'rooms', '[]'::jsonb)) AS room,
+      LATERAL jsonb_array_elements(COALESCE(room->'products', '[]'::jsonb)) AS room_product
+
+      UNION ALL
+
+      SELECT
+        p.id AS proposal_id,
+        p.created_at,
+        CASE jsonb_typeof(sb_product)
+          WHEN 'object' THEN (sb_product->>'id')::int
+          WHEN 'number' THEN (sb_product#>>'{}')::int
+        END AS product_id
+      FROM proposals p,
+      LATERAL jsonb_array_elements(COALESCE(p.floor, '[]'::jsonb)) AS client,
+      LATERAL jsonb_array_elements(COALESCE(client->'homes', '[]'::jsonb)) AS home,
+      LATERAL jsonb_array_elements(COALESCE(home->'rooms', '[]'::jsonb)) AS room,
+      LATERAL jsonb_array_elements(COALESCE(room->'switchboards', '[]'::jsonb)) AS switchboard,
+      LATERAL jsonb_array_elements(COALESCE(switchboard->'products', '[]'::jsonb)) AS sb_product
+    )
+    SELECT
+      date_trunc('${bucket}', created_at) AS bucket_date,
+      COUNT(*)::int AS usage_count
+    FROM all_occurrences
+    WHERE product_id = $1
+    GROUP BY bucket_date
+    ORDER BY bucket_date ASC;
+  `;
+
+  const { rows } = await pool.query(query, [productId]);
+  return rows
 },
 
     checkProductById: async (productIds) => {
