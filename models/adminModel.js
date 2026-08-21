@@ -379,8 +379,7 @@ const dbModel = {
 
     try {
 
-      let query = `
-                        SELECT 
+      let query = ` SELECT 
                             c.id,
                             c.client_id,
                             c.user_id,
@@ -462,7 +461,7 @@ const dbModel = {
                             c.site_contractor_phone,
                             c.architect_name,
                             c.architect_phone
-                        ORDER BY latest_proposal_updated_at DESC;;
+                        ORDER BY latest_proposal_updated_at ASC;;
         `;
       const result = await pool.query(query, [
         userId,
