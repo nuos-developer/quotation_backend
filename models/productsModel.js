@@ -17,6 +17,7 @@ const productModel = {
                 zigbee_type,
                 switch_load_count,
                 description,
+                is_price_editable
 
             } = reqBody;
 
@@ -31,8 +32,8 @@ const productModel = {
 
             const query = `
       INSERT INTO products 
-      (user_id, product_name, category, mod_size, mrp_price, discount_percentage, price, wiring_type_id, category_id, wiring_type, zigbee_type, created_by, switch_load_count, description)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8, $9, $10, $11, $12, $13, $14)
+      (user_id, product_name, category, mod_size, mrp_price, discount_percentage, price, wiring_type_id, category_id, wiring_type, zigbee_type, created_by, switch_load_count, description, is_price_editable)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8, $9, $10, $11, $12, $13, $14, $15)
       RETURNING id;
     `;
 
@@ -50,7 +51,8 @@ const productModel = {
                 zigbee_type,
                 userId,
                 switch_load_count,
-                description
+                description,
+                is_price_editable
             ];
 
             const result = await pool.query(query, values);
@@ -124,6 +126,7 @@ const productModel = {
                 `SELECT 
                         p.id,
                         p.product_name,
+                        p.is_price_editable,
                         p.category,
                         p.mod_size,
                         p.mrp_price,
@@ -149,6 +152,7 @@ const productModel = {
                     GROUP BY 
                         p.id,
                         p.product_name,
+                        p.is_price_editable,
                         p.category,
                         p.mod_size,
                         p.mrp_price,
@@ -189,6 +193,7 @@ const productModel = {
             const result = await pool.query(
                 `SELECT p.id,
                      p.product_name,
+                     p.is_price_editable,
                      p.category,
                      p.mod_size,
                      p.mrp_price,
@@ -213,6 +218,7 @@ const productModel = {
                  GROUP BY 
                      p.id,
                      p.product_name,
+                     p.is_price_editable,
                      p.category,
                      p.mod_size,
                      p.price,
@@ -322,7 +328,8 @@ const productModel = {
                 zigbee_type,
                 description,
                 category_id,
-                switch_load_count
+                switch_load_count,
+                is_price_editable
             } = reqBody;
 
             console.log(':>>>>>>>>>>>>', reqBody);
@@ -352,9 +359,10 @@ const productModel = {
                         zigbee_type = $9,
                         switch_load_count = $10,
                         description = $11,
-                        updated_by = $12,
+                        is_price_editable = $12,
+                        updated_by = $13,
                         updated_at = NOW()
-                    WHERE id = $13
+                    WHERE id = $14
                     RETURNING *;
                     `;
 
@@ -371,6 +379,7 @@ const productModel = {
                 zigbee_type || null,
                 switch_load_count ? parseInt(switch_load_count) : null,
                 description || null,
+                is_price_editable || false,
                 userId,
                 productId
             ];
