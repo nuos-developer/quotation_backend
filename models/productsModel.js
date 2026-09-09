@@ -989,7 +989,12 @@ getProductUsageCounts : async (period, fromDate, toDate) => {
                                 'quantity', (item_val->>'quantity')::int,
                                 'wiring_type_id', pc.wiring_type_id,
                                 'wiring_type', pc.wiring_name,
-                                'images', pc.images
+                                'images', pc.images,
+                                'new_price', CASE
+                                    WHEN item_val->>'new_price' IS NOT NULL AND item_val->>'new_price' != ''
+                                    THEN (item_val->>'new_price')::numeric
+                                    ELSE NULL
+                                END
                             ) ORDER BY item_idx
                         ) AS products_list
                     FROM proposals p
@@ -1089,22 +1094,29 @@ getProductUsageCounts : async (period, fromDate, toDate) => {
                                                                             END, ''
                                                                         ),
                                                                         'forthLoad', COALESCE(
-                                                                            CASE 
-                                                                                WHEN jsonb_typeof(pid_val) = 'object' 
+                                                                            CASE
+                                                                                WHEN jsonb_typeof(pid_val) = 'object'
                                                                                 THEN pid_val->>'forthLoad'
                                                                                 ELSE ''
                                                                             END, ''
-                                                                        )
+                                                                        ),
+                                                                        'new_price', CASE
+                                                                            WHEN jsonb_typeof(pid_val) = 'object'
+                                                                                AND pid_val->>'new_price' IS NOT NULL
+                                                                                AND pid_val->>'new_price' != ''
+                                                                            THEN (pid_val->>'new_price')::numeric
+                                                                            ELSE NULL
+                                                                        END
                                                                     ) ORDER BY pid_idx
                                                                 )
                                                                 FROM jsonb_array_elements(
                                                                     COALESCE(rm_val->'products', '[]'::jsonb)
                                                                 ) WITH ORDINALITY AS t(pid_val, pid_idx)
                                                                 JOIN product_cache pc ON pc.id = (
-                                                                    CASE 
-                                                                        WHEN jsonb_typeof(pid_val) = 'number' 
+                                                                    CASE
+                                                                        WHEN jsonb_typeof(pid_val) = 'number'
                                                                         THEN pid_val::text::int
-                                                                        WHEN jsonb_typeof(pid_val) = 'object' 
+                                                                        WHEN jsonb_typeof(pid_val) = 'object'
                                                                         THEN (pid_val->>'id')::int
                                                                     END
                                                                 )
@@ -1130,50 +1142,57 @@ getProductUsageCounts : async (period, fromDate, toDate) => {
                                                                                     'wiring_type', pc.wiring_name,
                                                                                     'images', pc.images,
                                                                                     'quantity', COALESCE(
-                                                                                        CASE 
-                                                                                            WHEN jsonb_typeof(spid_val) = 'object' 
+                                                                                        CASE
+                                                                                            WHEN jsonb_typeof(spid_val) = 'object'
                                                                                             THEN (spid_val->>'quantity')::int
                                                                                             ELSE NULL
                                                                                         END, 1
                                                                                     ),
                                                                                     'firstLoad', COALESCE(
-                                                                                        CASE 
-                                                                                            WHEN jsonb_typeof(spid_val) = 'object' 
+                                                                                        CASE
+                                                                                            WHEN jsonb_typeof(spid_val) = 'object'
                                                                                             THEN spid_val->>'firstLoad'
                                                                                             ELSE ''
                                                                                         END, ''
                                                                                     ),
                                                                                     'secondLoad', COALESCE(
-                                                                                        CASE 
-                                                                                            WHEN jsonb_typeof(spid_val) = 'object' 
+                                                                                        CASE
+                                                                                            WHEN jsonb_typeof(spid_val) = 'object'
                                                                                             THEN spid_val->>'secondLoad'
                                                                                             ELSE ''
                                                                                         END, ''
                                                                                     ),
                                                                                     'thirdLoad', COALESCE(
-                                                                                        CASE 
-                                                                                            WHEN jsonb_typeof(spid_val) = 'object' 
+                                                                                        CASE
+                                                                                            WHEN jsonb_typeof(spid_val) = 'object'
                                                                                             THEN spid_val->>'thirdLoad'
                                                                                             ELSE ''
                                                                                         END, ''
                                                                                     ),
                                                                                     'forthLoad', COALESCE(
-                                                                                        CASE 
-                                                                                            WHEN jsonb_typeof(spid_val) = 'object' 
+                                                                                        CASE
+                                                                                            WHEN jsonb_typeof(spid_val) = 'object'
                                                                                             THEN spid_val->>'forthLoad'
                                                                                             ELSE ''
                                                                                         END, ''
-                                                                                    )
+                                                                                    ),
+                                                                                    'new_price', CASE
+                                                                                        WHEN jsonb_typeof(spid_val) = 'object'
+                                                                                            AND spid_val->>'new_price' IS NOT NULL
+                                                                                            AND spid_val->>'new_price' != ''
+                                                                                        THEN (spid_val->>'new_price')::numeric
+                                                                                        ELSE NULL
+                                                                                    END
                                                                                 ) ORDER BY spid_idx
                                                                             )
                                                                             FROM jsonb_array_elements(
                                                                                 COALESCE(sb_val->'products', '[]'::jsonb)
                                                                             ) WITH ORDINALITY AS t(spid_val, spid_idx)
                                                                             JOIN product_cache pc ON pc.id = (
-                                                                                CASE 
-                                                                                    WHEN jsonb_typeof(spid_val) = 'number' 
+                                                                                CASE
+                                                                                    WHEN jsonb_typeof(spid_val) = 'number'
                                                                                     THEN spid_val::text::int
-                                                                                    WHEN jsonb_typeof(spid_val) = 'object' 
+                                                                                    WHEN jsonb_typeof(spid_val) = 'object'
                                                                                     THEN (spid_val->>'id')::int
                                                                                 END
                                                                             )
@@ -1205,8 +1224,8 @@ getProductUsageCounts : async (period, fromDate, toDate) => {
                         ) WITH ORDINALITY AS t(fl_val, fl_idx)
                     ) AS floor,
 
-                    CASE 
-                        WHEN p.proposal_type = 'productsWise' 
+                    CASE
+                        WHEN p.proposal_type = 'productsWise'
                         THEN pwc.products_list
                         ELSE NULL
                     END AS products_wise_items,
@@ -1329,7 +1348,12 @@ products_wise_cache AS (
                 'quantity', (item_val->>'quantity')::int,
                 'wiring_type_id', pc.wiring_type_id,
                 'wiring_type', pc.wiring_name,
-                'images', pc.images
+                'images', pc.images,
+                'new_price', CASE
+                    WHEN item_val->>'new_price' IS NOT NULL AND item_val->>'new_price' != ''
+                    THEN (item_val->>'new_price')::numeric
+                    ELSE NULL
+                END
             ) ORDER BY item_idx
         ) AS products_list
     FROM proposals p
@@ -1429,12 +1453,19 @@ SELECT
                                                             END, ''
                                                         ),
                                                         'forthLoad', COALESCE(
-                                                            CASE 
-                                                                WHEN jsonb_typeof(pid_val) = 'object' 
+                                                            CASE
+                                                                WHEN jsonb_typeof(pid_val) = 'object'
                                                                 THEN pid_val->>'forthLoad'
                                                                 ELSE ''
                                                             END, ''
-                                                        )
+                                                        ),
+                                                        'new_price', CASE
+                                                            WHEN jsonb_typeof(pid_val) = 'object'
+                                                                AND pid_val->>'new_price' IS NOT NULL
+                                                                AND pid_val->>'new_price' != ''
+                                                            THEN (pid_val->>'new_price')::numeric
+                                                            ELSE NULL
+                                                        END
                                                     ) ORDER BY pid_idx
                                                 )
                                                 FROM jsonb_array_elements(
@@ -1498,22 +1529,29 @@ SELECT
                                                                         END, ''
                                                                     ),
                                                                     'forthLoad', COALESCE(
-                                                                        CASE 
-                                                                            WHEN jsonb_typeof(spid_val) = 'object' 
+                                                                        CASE
+                                                                            WHEN jsonb_typeof(spid_val) = 'object'
                                                                             THEN spid_val->>'forthLoad'
                                                                             ELSE ''
                                                                         END, ''
-                                                                    )
+                                                                    ),
+                                                                    'new_price', CASE
+                                                                        WHEN jsonb_typeof(spid_val) = 'object'
+                                                                            AND spid_val->>'new_price' IS NOT NULL
+                                                                            AND spid_val->>'new_price' != ''
+                                                                        THEN (spid_val->>'new_price')::numeric
+                                                                        ELSE NULL
+                                                                    END
                                                                 ) ORDER BY spid_idx
                                                             )
                                                             FROM jsonb_array_elements(
                                                                 COALESCE(sb_val->'products', '[]'::jsonb)
                                                             ) WITH ORDINALITY AS t(spid_val, spid_idx)
                                                             JOIN product_cache pc ON pc.id = (
-                                                                CASE 
-                                                                    WHEN jsonb_typeof(spid_val) = 'number' 
+                                                                CASE
+                                                                    WHEN jsonb_typeof(spid_val) = 'number'
                                                                     THEN spid_val::text::int
-                                                                    WHEN jsonb_typeof(spid_val) = 'object' 
+                                                                    WHEN jsonb_typeof(spid_val) = 'object'
                                                                     THEN (spid_val->>'id')::int
                                                                 END
                                                             )
@@ -1544,9 +1582,9 @@ SELECT
             COALESCE(p.floor, '[]'::jsonb)
         ) WITH ORDINALITY AS t(fl_val, fl_idx)
     ) AS floor,
-    
-    CASE 
-        WHEN p.proposal_type = 'productsWise' 
+
+    CASE
+        WHEN p.proposal_type = 'productsWise'
         THEN pwc.products_list
         ELSE NULL
     END AS products_wise_items,
@@ -1667,7 +1705,12 @@ WHERE p.id = $1 AND p.deleted_at IS NULL; `, [proposalId]);
                                     'quantity', (item_val->>'quantity')::int,
                                     'wiring_type_id', pc.wiring_type_id,
                                     'wiring_type', pc.wiring_name,
-                                    'images', pc.images
+                                    'images', pc.images,
+                                    'new_price', CASE
+                                        WHEN item_val->>'new_price' IS NOT NULL AND item_val->>'new_price' != ''
+                                        THEN (item_val->>'new_price')::numeric
+                                        ELSE NULL
+                                    END
                                 ) ORDER BY item_idx
                             ) AS products_list
                         FROM proposals p
@@ -1767,22 +1810,29 @@ WHERE p.id = $1 AND p.deleted_at IS NULL; `, [proposalId]);
                                                                                 END, ''
                                                                             ),
                                                                             'forthLoad', COALESCE(
-                                                                                CASE 
-                                                                                    WHEN jsonb_typeof(pid_val) = 'object' 
+                                                                                CASE
+                                                                                    WHEN jsonb_typeof(pid_val) = 'object'
                                                                                     THEN pid_val->>'forthLoad'
                                                                                     ELSE ''
                                                                                 END, ''
-                                                                            )
+                                                                            ),
+                                                                            'new_price', CASE
+                                                                                WHEN jsonb_typeof(pid_val) = 'object'
+                                                                                    AND pid_val->>'new_price' IS NOT NULL
+                                                                                    AND pid_val->>'new_price' != ''
+                                                                                THEN (pid_val->>'new_price')::numeric
+                                                                                ELSE NULL
+                                                                            END
                                                                         ) ORDER BY pid_idx
                                                                     )
                                                                     FROM jsonb_array_elements(
                                                                         COALESCE(rm_val->'products', '[]'::jsonb)
                                                                     ) WITH ORDINALITY AS t(pid_val, pid_idx)
                                                                     JOIN product_cache pc ON pc.id = (
-                                                                        CASE 
-                                                                            WHEN jsonb_typeof(pid_val) = 'number' 
+                                                                        CASE
+                                                                            WHEN jsonb_typeof(pid_val) = 'number'
                                                                             THEN pid_val::text::int
-                                                                            WHEN jsonb_typeof(pid_val) = 'object' 
+                                                                            WHEN jsonb_typeof(pid_val) = 'object'
                                                                             THEN (pid_val->>'id')::int
                                                                         END
                                                                     )
@@ -1808,50 +1858,57 @@ WHERE p.id = $1 AND p.deleted_at IS NULL; `, [proposalId]);
                                                                                         'wiring_type', pc.wiring_name,
                                                                                         'images', pc.images,
                                                                                         'quantity', COALESCE(
-                                                                                            CASE 
-                                                                                                WHEN jsonb_typeof(spid_val) = 'object' 
+                                                                                            CASE
+                                                                                                WHEN jsonb_typeof(spid_val) = 'object'
                                                                                                 THEN (spid_val->>'quantity')::int
                                                                                                 ELSE NULL
                                                                                             END, 1
                                                                                         ),
                                                                                         'firstLoad', COALESCE(
-                                                                                            CASE 
-                                                                                                WHEN jsonb_typeof(spid_val) = 'object' 
+                                                                                            CASE
+                                                                                                WHEN jsonb_typeof(spid_val) = 'object'
                                                                                                 THEN spid_val->>'firstLoad'
                                                                                                 ELSE ''
                                                                                             END, ''
                                                                                         ),
                                                                                         'secondLoad', COALESCE(
-                                                                                            CASE 
-                                                                                                WHEN jsonb_typeof(spid_val) = 'object' 
+                                                                                            CASE
+                                                                                                WHEN jsonb_typeof(spid_val) = 'object'
                                                                                                 THEN spid_val->>'secondLoad'
                                                                                                 ELSE ''
                                                                                             END, ''
                                                                                         ),
                                                                                         'thirdLoad', COALESCE(
-                                                                                            CASE 
-                                                                                                WHEN jsonb_typeof(spid_val) = 'object' 
+                                                                                            CASE
+                                                                                                WHEN jsonb_typeof(spid_val) = 'object'
                                                                                                 THEN spid_val->>'thirdLoad'
                                                                                                 ELSE ''
                                                                                             END, ''
                                                                                         ),
                                                                                         'forthLoad', COALESCE(
-                                                                                            CASE 
-                                                                                                WHEN jsonb_typeof(spid_val) = 'object' 
+                                                                                            CASE
+                                                                                                WHEN jsonb_typeof(spid_val) = 'object'
                                                                                                 THEN spid_val->>'forthLoad'
                                                                                                 ELSE ''
                                                                                             END, ''
-                                                                                        )
+                                                                                        ),
+                                                                                        'new_price', CASE
+                                                                                            WHEN jsonb_typeof(spid_val) = 'object'
+                                                                                                AND spid_val->>'new_price' IS NOT NULL
+                                                                                                AND spid_val->>'new_price' != ''
+                                                                                            THEN (spid_val->>'new_price')::numeric
+                                                                                            ELSE NULL
+                                                                                        END
                                                                                     ) ORDER BY spid_idx
                                                                                 )
                                                                                 FROM jsonb_array_elements(
                                                                                     COALESCE(sb_val->'products', '[]'::jsonb)
                                                                                 ) WITH ORDINALITY AS t(spid_val, spid_idx)
                                                                                 JOIN product_cache pc ON pc.id = (
-                                                                                    CASE 
-                                                                                        WHEN jsonb_typeof(spid_val) = 'number' 
+                                                                                    CASE
+                                                                                        WHEN jsonb_typeof(spid_val) = 'number'
                                                                                         THEN spid_val::text::int
-                                                                                        WHEN jsonb_typeof(spid_val) = 'object' 
+                                                                                        WHEN jsonb_typeof(spid_val) = 'object'
                                                                                         THEN (spid_val->>'id')::int
                                                                                     END
                                                                                 )
@@ -1882,9 +1939,9 @@ WHERE p.id = $1 AND p.deleted_at IS NULL; `, [proposalId]);
                                 COALESCE(p.floor, '[]'::jsonb)
                             ) WITH ORDINALITY AS t(fl_val, fl_idx)
                         ) AS floor,
-                                
-                        CASE 
-                            WHEN p.proposal_type = 'productsWise' 
+
+                        CASE
+                            WHEN p.proposal_type = 'productsWise'
                             THEN pwc.products_list
                             ELSE NULL
                         END AS products_wise_items,

@@ -58,7 +58,7 @@ const adminController = {
             if (!admin) {
                 return res.status(HttpStatus.UNAUTHORIZED).json({ message: 'Invalid email or password' });
             }
-            res.json({ message: 'Admin Login successful', token, admin: { email_id: admin.email_id }, });
+            res.json({ message: 'Admin Login successful', token, admin: { email_id: admin.email_id, role_id : admin.role_id, role_name : admin.role_name}, });
         } catch (err) {
             console.error(err);
             res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: HttpMessage.INTERNAL_SERVER_ERROR });
