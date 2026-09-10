@@ -34,4 +34,10 @@ app.use('/api/users', userRoutes)
 app.use('/api/common', commonRoutes)
 // app.use('/api/product', )
 
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
+  console.error(err);
+  res.status(400).json({ message: err.message || 'Bad Request' });
+});
+
 module.exports = app;

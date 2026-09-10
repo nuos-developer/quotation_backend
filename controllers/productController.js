@@ -322,8 +322,13 @@ const productController = {
 
     getProductUsageTrend: async (req, res) => {
         try {
-            const { product_id, period } = req.query;
-            const result = await productService.fetchProductUsageTrend({ productId: product_id, period });
+            const { product_id, period, from, to } = req.query;
+            const result = await productService.fetchProductUsageTrend({
+                productId: product_id,
+                period,
+                fromDate: from,
+                toDate: to,
+            });
             return res.status(200).json({ success: true, ...result });
         } catch (error) {
             console.error('Error fetching product usage trend:', error);

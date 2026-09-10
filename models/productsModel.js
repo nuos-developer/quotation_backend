@@ -332,9 +332,6 @@ const productModel = {
                 is_price_editable
             } = reqBody;
 
-            console.log(':>>>>>>>>>>>>', reqBody);
-
-
             // Convert wiring_type_id to integer or NULL
             const wiringTypeId =
                 wiring_type_id !== undefined &&
@@ -638,7 +635,7 @@ getProductUsageCounts : async (period, fromDate, toDate) => {
 },
 
 // Usage trend over time for a single selected product
- getProductUsageTrend :async (productId, period = 'month') => {
+ getProductUsageTrend :async (productId, period = 'month', fromDate, toDate) => {
   const bucketMap = {
     day: 'day',
     week: 'week',
@@ -646,6 +643,10 @@ getProductUsageCounts : async (period, fromDate, toDate) => {
     year: 'year',
   };
   const bucket = bucketMap[period] || 'month';
+
+  const hasRange = Boolean(fromDate && toDate);
+  const params = hasRange ? [productId, fromDate, toDate] : [productId];
+  const rangeClause = hasRange ? 'AND created_at::date BETWEEN $2 AND $3' : '';
 
   const query = `
     WITH all_occurrences AS (
@@ -682,12 +683,12 @@ getProductUsageCounts : async (period, fromDate, toDate) => {
       date_trunc('${bucket}', created_at) AS bucket_date,
       COUNT(*)::int AS usage_count
     FROM all_occurrences
-    WHERE product_id = $1
+    WHERE product_id = $1 ${rangeClause}
     GROUP BY bucket_date
     ORDER BY bucket_date ASC;
   `;
 
-  const { rows } = await pool.query(query, [productId]);
+  const { rows } = await pool.query(query, params);
   return rows
 },
 
@@ -736,7 +737,6 @@ getProductUsageCounts : async (period, fromDate, toDate) => {
                 ship_to_address,
                 use_same_address,
                 use_same_recipient,
-                created_at,
                 proposal_title
             } = reqBody;
 
@@ -773,6 +773,7 @@ getProductUsageCounts : async (period, fromDate, toDate) => {
                     use_same_recipient,
                     created_by,
                     created_at,
+                    updated_at,
                     proposal_title
 
                 )
@@ -789,8 +790,9 @@ getProductUsageCounts : async (period, fromDate, toDate) => {
                 $13,
                 $14,
                 $15,
-                $16,
-                $17
+                NOW(),
+                NOW(),
+                $16
             )
             RETURNING *;
             `;
@@ -811,7 +813,6 @@ getProductUsageCounts : async (period, fromDate, toDate) => {
                 use_same_address ?? false,
                 use_same_recipient ?? false,
                 userId,
-                created_at,
                 proposal_title
             ];
 
@@ -876,19 +877,18 @@ getProductUsageCounts : async (period, fromDate, toDate) => {
             if (body.ship_to_address !== undefined) addField('ship_to_address', body.ship_to_address);
             if (body.use_same_address !== undefined) addField('use_same_address', body.use_same_address);
             if (body.use_same_recipient !== undefined) addField('use_same_recipient', body.use_same_recipient);
-            if (body.updated_at !== undefined) addField('updated_at', body.updated_at);
             if (body.proposal_title !== undefined) addField('proposal_title', body.proposal_title);
 
             if (financialData !== null) addField('financial_breakdown', financialData, '::jsonb');
             if (floorData !== null) addField('floor', floorData, '::jsonb');
             if (productsWiseData !== null) addField('products_wise_items', productsWiseData, '::jsonb');
 
-            // updated_at
-            // addField('updated_at', new Date());
-
             if (fields.length === 0) {
                 throw new Error('No fields to update');
             }
+
+            // updated_at is always set by the server, never trusted from the client
+            fields.push('updated_at = NOW()');
 
             /* =====================================================
                🔥 FINAL QUERY
@@ -901,9 +901,6 @@ getProductUsageCounts : async (period, fromDate, toDate) => {
             `;
 
             values.push(proposalId);
-
-            console.log('UPDATE QUERY:', query);
-            console.log('VALUES:', values);
 
             const result = await client.query(query, values);
 

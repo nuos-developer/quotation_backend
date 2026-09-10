@@ -770,16 +770,22 @@ const dbModel = {
     }
   },
 
-  getDashboardGraph: async (graph) => {
+  getDashboardGraph: async (graph, fromDate, toDate) => {
 
     try {
+
+      // When a fromDate/toDate range is supplied, filter to that explicit
+      // range instead of the preset "last N days/weeks/months/years" window.
+      // Bucketing (day/week/month/year) still follows the `graph` param.
+      const hasRange = Boolean(fromDate && toDate);
+      const rangeParams = hasRange ? [fromDate, toDate] : [];
 
       let proposalGraphQuery = "";
 
       switch (graph) {
 
         // ============================================
-        // Last 30 Days
+        // Day buckets (default: last 30 days)
         // ============================================
         case "day":
 
@@ -791,7 +797,9 @@ const dbModel = {
                     FROM proposals
                     WHERE
                         deleted_at IS NULL
-                        AND created_at >= CURRENT_DATE - INTERVAL '29 days'
+                        AND ${hasRange
+                          ? `created_at::date BETWEEN $1 AND $2`
+                          : `created_at >= CURRENT_DATE - INTERVAL '29 days'`}
                     GROUP BY
                         DATE(created_at),
                         TO_CHAR(created_at, 'DD Mon YYYY')
@@ -801,7 +809,7 @@ const dbModel = {
           break;
 
         // ============================================
-        // Last 5 Weeks
+        // Week buckets (default: last 5 weeks)
         // ============================================
         case "week":
 
@@ -821,7 +829,9 @@ const dbModel = {
 
                     WHERE
                         deleted_at IS NULL
-                        AND created_at >= DATE_TRUNC('week', CURRENT_DATE) - INTERVAL '4 weeks'
+                        AND ${hasRange
+                          ? `created_at::date BETWEEN $1 AND $2`
+                          : `created_at >= DATE_TRUNC('week', CURRENT_DATE) - INTERVAL '4 weeks'`}
 
                     GROUP BY
                         EXTRACT(YEAR FROM created_at),
@@ -834,7 +844,7 @@ const dbModel = {
           break;
 
         // ============================================
-        // Last 6 Months
+        // Month buckets (default: last 6 months)
         // ============================================
         case "month":
 
@@ -850,7 +860,9 @@ const dbModel = {
 
                     WHERE
                         deleted_at IS NULL
-                        AND created_at >= DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '5 months'
+                        AND ${hasRange
+                          ? `created_at::date BETWEEN $1 AND $2`
+                          : `created_at >= DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '5 months'`}
 
                     GROUP BY
                         DATE_TRUNC('month', created_at),
@@ -862,7 +874,7 @@ const dbModel = {
           break;
 
         // ============================================
-        // Last 5 Years
+        // Year buckets (default: last 5 years)
         // ============================================
         case "year":
 
@@ -879,7 +891,9 @@ const dbModel = {
 
                     WHERE
                         deleted_at IS NULL
-                        AND created_at >= DATE_TRUNC('year', CURRENT_DATE) - INTERVAL '4 years'
+                        AND ${hasRange
+                          ? `created_at::date BETWEEN $1 AND $2`
+                          : `created_at >= DATE_TRUNC('year', CURRENT_DATE) - INTERVAL '4 years'`}
 
                     GROUP BY
                         EXTRACT(YEAR FROM created_at)
@@ -890,7 +904,7 @@ const dbModel = {
           break;
 
         // ============================================
-        // Default (Last 6 Months)
+        // Default (last 6 months)
         // ============================================
         default:
 
@@ -906,7 +920,9 @@ const dbModel = {
 
                     WHERE
                         deleted_at IS NULL
-                        AND created_at >= DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '5 months'
+                        AND ${hasRange
+                          ? `created_at::date BETWEEN $1 AND $2`
+                          : `created_at >= DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '5 months'`}
 
                     GROUP BY
                         DATE_TRUNC('month', created_at),
@@ -917,7 +933,7 @@ const dbModel = {
                 `;
       }
 
-      const proposalGraphResult = await pool.query(proposalGraphQuery);
+      const proposalGraphResult = await pool.query(proposalGraphQuery, rangeParams);
 
       return {
         proposalGraph: proposalGraphResult.rows

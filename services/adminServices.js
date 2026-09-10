@@ -119,7 +119,6 @@ const adminService = {
 
     loginAdmin: async (email_id, password) => {
         const admin = await commDbModel.findByEmail(email_id);
-        console.log('admin :>>>>>>>', admin);
 
         if (!admin) return { admin: null };
         await dbModel.updateLoginStatus(admin.id)
@@ -136,7 +135,6 @@ const adminService = {
             process.env.JWT_SECRET,
             { expiresIn: '1d' }
         );
-        console.log(token);
         return { admin, token };
     },
 
@@ -338,8 +336,8 @@ const adminService = {
     },
 
 
-    getDashboardGraphCount: async (graph) => {
-        const data = await dbModel.getDashboardGraph(graph);
+    getDashboardGraphCount: async (graph, fromDate, toDate) => {
+        const data = await dbModel.getDashboardGraph(graph, fromDate, toDate);
 
         return {
             success: true,

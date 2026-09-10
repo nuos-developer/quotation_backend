@@ -51,8 +51,6 @@ const adminController = {
 
     login: async (req, res) => {
         try {
-            console.log('admin:>>>>>>>', req.body);
-
             const { email_id, password } = req.body;
             const { admin, token } = await adminService.loginAdmin(email_id, password);
             if (!admin) {
@@ -259,7 +257,8 @@ const adminController = {
     getDashboardGraphCount: async (req, res) => {
         try {
             const graph = req.query.graph || 'day';
-            const result = await adminService.getDashboardGraphCount(graph);
+            const { fromDate, toDate } = req.query;
+            const result = await adminService.getDashboardGraphCount(graph, fromDate, toDate);
             res.status(HttpStatus.OK).json(result);
         } catch (error) {
             console.error('Dashboard error:', error);

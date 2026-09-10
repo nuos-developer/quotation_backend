@@ -223,7 +223,7 @@ const productService = {
         return d.toLocaleString('default', { month: 'short', year: 'numeric' });   // Aug 2026
     },
 
-    fetchProductUsageTrend: async ({ productId, period }) => {
+    fetchProductUsageTrend: async ({ productId, period, fromDate, toDate }) => {
         if (!productId) {
             const err = new Error('product_id is required');
             err.status = 400;
@@ -235,7 +235,7 @@ const productService = {
             throw err;
         }
 
-        const rows = await productModel.getProductUsageTrend(productId, period);
+        const rows = await productModel.getProductUsageTrend(productId, period, fromDate, toDate);
 
         const data = rows.map(row => ({
             label: productService.formatBucketLabel(row.bucket_date, period),
@@ -247,6 +247,7 @@ const productService = {
         return {
             product_id: Number(productId),
             period: period || 'month',
+            filter: fromDate && toDate ? { from: fromDate, to: toDate } : undefined,
             total_usage: totalUsage,
             data,
         };
