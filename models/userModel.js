@@ -1,5 +1,36 @@
 const { pool } = require('../config/dbConn');
 
+// Generates the next sequential client_id (e.g. CL0{userId}{n}) for a user.
+// Must be called with a client bound to the caller's transaction so the
+// FOR UPDATE lock is honored.
+const generateNextClientId = async (client, userId) => {
+    const prefix = `CL0${userId}`;
+
+    const lastClientQuery = `
+        SELECT client_id
+        FROM clients
+        WHERE user_id = $1
+        ORDER BY id DESC
+        LIMIT 1
+        FOR UPDATE;
+    `;
+
+    const lastResult = await client.query(lastClientQuery, [userId]);
+
+    let nextNumber = 1;
+
+    if (lastResult.rows.length > 0) {
+        const lastClientId = lastResult.rows[0].client_id;
+
+        if (lastClientId.startsWith(prefix)) {
+            const numberPart = lastClientId.replace(prefix, '');
+            nextNumber = parseInt(numberPart) + 1 || 1;
+        }
+    }
+
+    return `${prefix}${nextNumber}`;
+};
+
 const userModel = {
 
     updateLoginStatus: async (userId) => {
@@ -287,11 +318,11 @@ const userModel = {
         try {
             await client.query('BEGIN');
 
-            // 🔥 DUPLICATE CHECK (optional)
+            // 🔥 DUPLICATE CHECK (blocks only against ACTIVE clients)
             if (data.email_id && data.mobile_number) {
                 const checkQuery = `
-        SELECT 1 FROM clients 
-        WHERE email_id = $1 OR mobile_number = $2
+        SELECT 1 FROM clients
+        WHERE (email_id = $1 OR mobile_number = $2) AND deleted_by IS NULL
         LIMIT 1;
       `;
 
@@ -305,32 +336,89 @@ const userModel = {
                 }
             }
 
-            // 🔥 GENERATE client_id (FIXED LOGIC)
-            const prefix = `CL0${userId}`;
+            // 🔥 RESTORE PATH: if a soft-deleted client already holds this
+            // email/mobile, reuse that row instead of inserting a new one,
+            // since mobile_number/email_id have hard unique constraints that
+            // a deleted row still occupies.
+            if (data.email_id || data.mobile_number) {
+                const deletedMatchQuery = `
+                    SELECT id FROM clients
+                    WHERE (email_id = $1 OR mobile_number = $2) AND deleted_by IS NOT NULL
+                    ORDER BY deleted_at DESC
+                    LIMIT 1
+                    FOR UPDATE;
+                `;
 
-            const lastClientQuery = `
-                          SELECT client_id 
-                          FROM clients 
-                          WHERE user_id = $1 
-                          ORDER BY id DESC 
-                          LIMIT 1
-                          FOR UPDATE;
-                        `;
+                const deletedMatchRes = await client.query(deletedMatchQuery, [
+                    data.email_id || null,
+                    data.mobile_number || null
+                ]);
 
-            const lastResult = await client.query(lastClientQuery, [userId]);
+                if (deletedMatchRes.rows.length > 0) {
+                    const existingId = deletedMatchRes.rows[0].id;
 
-            let nextNumber = 1;
+                    const restoreClientId = await generateNextClientId(client, userId);
 
-            if (lastResult.rows.length > 0) {
-                const lastClientId = lastResult.rows[0].client_id;
+                    const restoreQuery = `
+                      UPDATE clients SET
+                        user_id = $1, client_id = $2, first_name = $3, last_name = $4,
+                        mobile_number = $5, email_id = $6, address_line_one = $7, address_line_two = $8, pin_code = $9,
+                        country = $10, state = $11, district = $12,
+                        taluk = $13, division = $14, region = $15,
+                        company_name = $16, gst = $17, company_address = $18, salesrepincharge = $19,
+                        installation_rep_in_charge = $20, lead_source = $21,
+                        date_of_installation = $22,
+                        site_contractor_name = $23, site_contractor_phone = $24,
+                        architect_name = $25, architect_phone = $26, client_category = $27, iso_code = $28,
+                        lead_status_id = $29, reference_id = $30,
+                        deleted_at = NULL, deleted_by = NULL, updated_at = CURRENT_TIMESTAMP
+                      WHERE id = $31
+                      RETURNING *;
+                    `;
 
-                if (lastClientId.startsWith(prefix)) {
-                    const numberPart = lastClientId.replace(prefix, '');
-                    nextNumber = parseInt(numberPart) + 1 || 1;
+                    const restoreValues = [
+                        userId,
+                        restoreClientId,
+                        data.first_name,
+                        data.last_name,
+                        data.mobile_number,
+                        data.email_id,
+                        data.address_line_one || null,
+                        data.address_line_two || null,
+                        data.pin_code || null,
+                        data.country || null,
+                        data.state || null,
+                        data.district || null,
+                        data.taluk || null,
+                        data.division || null,
+                        data.region || null,
+                        data.company_name || null,
+                        data.gst || null,
+                        data.company_address || null,
+                        data.salesrepincharge || null,
+                        data.installation_rep_in_charge || null,
+                        data.lead_source || null,
+                        data.date_of_installation || null,
+                        data.site_contractor_name || null,
+                        data.site_contractor_phone || null,
+                        data.architect_name || null,
+                        data.architect_phone || null,
+                        data.client_category || null,
+                        data.iso_code || null,
+                        data.lead_status_id || null,
+                        data.reference_id || null,
+                        existingId
+                    ];
+
+                    const restoreResult = await client.query(restoreQuery, restoreValues);
+
+                    await client.query('COMMIT');
+                    return restoreResult.rows[0];
                 }
             }
 
-            const client_id = `${prefix}${nextNumber}`;
+            // 🔥 GENERATE client_id (FIXED LOGIC)
+            const client_id = await generateNextClientId(client, userId);
 
             // 🔥 INSERT
             const query = `
