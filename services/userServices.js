@@ -185,12 +185,12 @@ const adminService = {
         };
       }
 
-      if (error.code === '23505') {
-        return {
-          success: false,
-          message: 'Client ID already exists (rare conflict, try again)'
-        };
-      }
+      // if (error.code === '23505') {
+      //   return {
+      //     success: false,
+      //     message: 'Client ID already exists (rare conflict, try again)'
+      //   };
+      // }
 
       return {
         success: false,

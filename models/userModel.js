@@ -2,33 +2,40 @@ const { pool } = require('../config/dbConn');
 
 // Generates the next sequential client_id (e.g. CL0{userId}{n}) for a user.
 // Must be called with a client bound to the caller's transaction so the
-// FOR UPDATE lock is honored.
+// advisory lock is held until commit/rollback.
 const generateNextClientId = async (client, userId) => {
     const prefix = `CL0${userId}`;
 
-    const lastClientQuery = `
-        SELECT client_id
+    // Serialize client_id generation across concurrent transactions
+    await client.query(`SELECT pg_advisory_xact_lock(hashtext('clients_client_id'))`);
+
+    // Use the highest numeric suffix, not the latest row: restored clients
+    // keep their old (lower) id but receive a fresh client_id.
+    const maxQuery = `
+        SELECT COALESCE(MAX(SUBSTRING(client_id FROM $2)::bigint), 0) AS max_num
         FROM clients
-        WHERE user_id = $1
-        ORDER BY id DESC
-        LIMIT 1
-        FOR UPDATE;
+        WHERE user_id = $1 AND client_id ~ $3;
     `;
 
-    const lastResult = await client.query(lastClientQuery, [userId]);
+    const maxResult = await client.query(maxQuery, [
+        userId,
+        `^${prefix}([0-9]+)$`,
+        `^${prefix}[0-9]+$`
+    ]);
 
-    let nextNumber = 1;
+    let nextNumber = Number(maxResult.rows[0].max_num) + 1;
 
-    if (lastResult.rows.length > 0) {
-        const lastClientId = lastResult.rows[0].client_id;
-
-        if (lastClientId.startsWith(prefix)) {
-            const numberPart = lastClientId.replace(prefix, '');
-            nextNumber = parseInt(numberPart) + 1 || 1;
-        }
+    // client_id is globally unique and prefixes can overlap between users
+    // (e.g. CL01 + 23 and CL012 + 3), so skip any value already taken.
+    while (true) {
+        const candidate = `${prefix}${nextNumber}`;
+        const exists = await client.query(
+            'SELECT 1 FROM clients WHERE client_id = $1 LIMIT 1',
+            [candidate]
+        );
+        if (exists.rows.length === 0) return candidate;
+        nextNumber++;
     }
-
-    return `${prefix}${nextNumber}`;
 };
 
 const userModel = {
