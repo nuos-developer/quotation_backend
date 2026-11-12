@@ -737,8 +737,11 @@ getProductUsageCounts : async (period, fromDate, toDate) => {
                 ship_to_address,
                 use_same_address,
                 use_same_recipient,
-                proposal_title
+                proposal_title,
+                freight_charge
             } = reqBody;
+            console.log(reqBody);
+            
 
 
             // 🔥 CONDITIONAL DATA HANDLING
@@ -774,7 +777,8 @@ getProductUsageCounts : async (period, fromDate, toDate) => {
                     created_by,
                     created_at,
                     updated_at,
-                    proposal_title
+                    proposal_title,
+                    freight_charge
 
                 )
             VALUES(
@@ -792,7 +796,8 @@ getProductUsageCounts : async (period, fromDate, toDate) => {
                 $15,
                 NOW(),
                 NOW(),
-                $16
+                $16,
+                $17
             )
             RETURNING *;
             `;
@@ -813,7 +818,8 @@ getProductUsageCounts : async (period, fromDate, toDate) => {
                 use_same_address ?? false,
                 use_same_recipient ?? false,
                 userId,
-                proposal_title
+                proposal_title,
+                freight_charge
             ];
 
             const result = await pool.query(query, values);
@@ -882,6 +888,7 @@ getProductUsageCounts : async (period, fromDate, toDate) => {
             if (financialData !== null) addField('financial_breakdown', financialData, '::jsonb');
             if (floorData !== null) addField('floor', floorData, '::jsonb');
             if (productsWiseData !== null) addField('products_wise_items', productsWiseData, '::jsonb');
+             if (body.freight_charge !== undefined) addField('freight_charge', body.freight_charge);
 
             if (fields.length === 0) {
                 throw new Error('No fields to update');
@@ -1236,6 +1243,7 @@ getProductUsageCounts : async (period, fromDate, toDate) => {
                     p.ship_to_address,
                     p.use_same_address,
                     p.use_same_recipient,
+                    p.freight_charge,
 
                     jsonb_build_object(
                         'id', c.id,
@@ -1595,6 +1603,7 @@ SELECT
     p.ship_to_address,
     p.use_same_address,
     p.use_same_recipient,
+    p.freight_charge,
     
     jsonb_build_object(
         'id', c.id,
@@ -1952,6 +1961,7 @@ WHERE p.id = $1 AND p.deleted_at IS NULL; `, [proposalId]);
                         p.ship_to_address,
                         p.use_same_address,
                         p.use_same_recipient,
+                        p.freight_charge,
                                 
                         jsonb_build_object(
                             'id', c.id,

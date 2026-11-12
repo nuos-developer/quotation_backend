@@ -186,6 +186,10 @@ const productController = {
 
             const resp = await productService.createProposal(reqBody, userId)
 
+            if (!resp.success) {
+                return res.status(HttpStatus.BAD_REQUEST).json({ data: resp });
+            }
+
             res.status(HttpStatus.CREATED).json({
                 data: resp
             });
